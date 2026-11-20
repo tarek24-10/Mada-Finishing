@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="MadaFinishing.Tests/MadaFinishing.Tests.csproj" />
+  <Project Path="MadaFinishing.Web/MadaFinishing.Web.csproj" />
+</Solution>
