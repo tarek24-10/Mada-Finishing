@@ -28,9 +28,14 @@ public sealed class Inquiry
     public string? Message { get; private set; }
 
     public DateTimeOffset CreatedAt { get; private set; }
+    [ConcurrencyCheck]
     public InquiryStatus Status { get; private set; }
+
+    [ConcurrencyCheck]
     public string? CoordinatorId { get; private set; }
+
     public StaffUser? Coordinator { get; private set; }
+    public bool CanBeAssigned => Status != InquiryStatus.Closed;
 
     public static Inquiry Create(
         string customerName, string phone, string serviceType, string? message, DateTimeOffset createdAt)
@@ -44,5 +49,22 @@ public sealed class Inquiry
             CreatedAt = createdAt,
             Status = InquiryStatus.New
         };
+    }
+
+    public InquiryAssignment? AssignTo(string coordinatorId, string actorId, DateTimeOffset assignedAt)
+    {
+        if (!CanBeAssigned)
+        {
+            throw new InvalidOperationException("Closed inquiries cannot be reassigned.");
+        }
+
+        if (CoordinatorId == coordinatorId)
+        {
+            return null;
+        }
+
+        var assignment = new InquiryAssignment(this, actorId, CoordinatorId, coordinatorId, assignedAt);
+        CoordinatorId = coordinatorId;
+        return assignment;
     }
 }

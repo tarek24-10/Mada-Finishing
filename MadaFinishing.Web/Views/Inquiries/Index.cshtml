@@ -8,7 +8,10 @@
 
 <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
     <h1 class="h2 mb-0">الاستفسارات</h1>
-    <a asp-action="Create" class="btn btn-primary">استفسار جديد</a>
+    @if (User.IsInRole(StaffUser.ManagerRole))
+    {
+        <a asp-action="Create" class="btn btn-primary">استفسار جديد</a>
+    }
 </div>
 
 <form asp-action="Index" method="get" class="card card-body mb-4">
@@ -57,7 +60,7 @@ else
                     var statusValue = ((int)inquiry.Status).ToString(CultureInfo.InvariantCulture);
                     <tr>
                         <td>
-                            <div class="fw-semibold">@inquiry.CustomerName</div>
+                            <div><a asp-action="Details" asp-route-id="@inquiry.Id" class="fw-semibold">@inquiry.CustomerName</a></div>
                             <bdi dir="ltr" class="text-body-secondary">@inquiry.Phone</bdi>
                         </td>
                         <td>@inquiry.ServiceType</td>

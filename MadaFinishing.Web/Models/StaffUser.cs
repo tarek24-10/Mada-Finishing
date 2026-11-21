@@ -9,4 +9,5 @@ public sealed class StaffUser : IdentityUser
     public string DisplayName { get; set; } = "";
 
     public const string ManagerRole = "Manager";
+    public const string CoordinatorRole = "Coordinator";
 }
