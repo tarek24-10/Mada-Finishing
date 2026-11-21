@@ -8,6 +8,7 @@ Translate the approved workflow into screens and data needs, then confirm the te
 
 | Decision | Choice | Reason |
 |---|---|---|
+| Source repository | Use the existing Mada Finishing Git repository | It contains the project history and solution scaffold. |
 | Web application | .NET 11 and ASP.NET Core MVC with Razor views | The staff workflow uses forms, tables, filters, and a detail screen. |
 | Database | SQL Server with EF Core and migrations | The data is relational. An inquiry change and its associated history can be saved together. |
 | Data access organization | Direct EF Core access in focused inquiry code | Inquiry rules stay separate from MVC controllers within the web project. |
@@ -55,10 +56,6 @@ For the first test of each type, walk through the requirement, Arrange–Act–A
 
 The manager signs in, enters an inquiry, and finds it in the list as New and unassigned. This covers staff sign-in, a SQL Server migration, the first form, server-side validation, and a persisted record. Assignment and coordinator follow-up are the next milestones.
 
-## Technical decisions pending approval
-
-| Decision | Next step |
-|---|---|
-| Source repository | Confirm whether to start a new local Git repository or use an existing repository. |
+## Implementation environment
 
 The implementation environment has .NET SDK 11.0.100 and ASP.NET Core runtime 11.0.0.

@@ -12,6 +12,10 @@ html {
   box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
 }
 
+.input-validation-error {
+  border-color: var(--bs-danger);
+}
+
 .navbar-light .navbar-brand:focus-visible, .navbar-light .navbar-nav .nav-link:focus-visible {
   outline: 2px solid #212529;
   outline-offset: 2px;
