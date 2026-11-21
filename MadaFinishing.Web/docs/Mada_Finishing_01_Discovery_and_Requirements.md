@@ -39,6 +39,7 @@
 | Is there a service catalogue or a required phone format? | During intake, Noor enters the service type as text and records the phone as supplied. The system trims surrounding whitespace and searches the recorded phone by substring. |
 | Which time zone should the inquiry list use? | Show the date and time in Cairo. Store the creation timestamp in UTC. |
 | What happens when Noor selects the current coordinator again or another assignment is saved at the same time? | Selecting the current coordinator leaves ownership and history unchanged. If another change is saved while this request is in progress, show the latest details and ask Noor to review them before trying again. |
+| Can coordinators skip an open status or submit blank notes? | Open statuses advance one step at a time. Closing is available from any open status. Notes and closing reasons must contain text, with limits of 2,000 and 500 characters respectively. |
 
 ### Client acceptance scenarios
 
