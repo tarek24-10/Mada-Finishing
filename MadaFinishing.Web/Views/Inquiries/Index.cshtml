@@ -1,0 +1,76 @@
+@using System.Globalization
+@model InquiryListViewModel
+@{
+    ViewData["Title"] = "الاستفسارات";
+    var cairo = TimeZoneInfo.FindSystemTimeZoneById("Africa/Cairo");
+    var statusLabels = Html.GetEnumSelectList<InquiryStatus>();
+}
+
+<div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+    <h1 class="h2 mb-0">الاستفسارات</h1>
+    <a asp-action="Create" class="btn btn-primary">استفسار جديد</a>
+</div>
+
+<form asp-action="Index" method="get" class="card card-body mb-4">
+    <div class="row g-3 align-items-end">
+        <div class="col-md">
+            <label asp-for="Search" class="form-label">اسم العميل أو رقم الهاتف</label>
+            <input asp-for="Search" type="search" class="form-control" />
+        </div>
+        <div class="col-md-4">
+            <label asp-for="Status" class="form-label">الحالة</label>
+            <select asp-for="Status" asp-items="statusLabels" class="form-select">
+                <option value="">كل الحالات</option>
+            </select>
+        </div>
+        <div class="col-md-auto d-flex flex-wrap gap-2">
+            <button type="submit" class="btn btn-outline-primary">بحث</button>
+            @if (!string.IsNullOrWhiteSpace(Model.Search) || Model.Status is not null)
+            {
+                <a asp-action="Index" class="btn btn-outline-secondary">مسح البحث</a>
+            }
+        </div>
+    </div>
+</form>
+
+@if (Model.Inquiries.Count == 0)
+{
+    <p class="border rounded bg-white p-4">لا توجد استفسارات مطابقة.</p>
+}
+else
+{
+    <div class="table-responsive border rounded bg-white" role="region" aria-label="نتائج البحث" tabindex="0">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th scope="col">العميل</th>
+                    <th scope="col">الخدمة</th>
+                    <th scope="col">تاريخ الإدخال</th>
+                    <th scope="col">الحالة</th>
+                    <th scope="col">المسؤول</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var inquiry in Model.Inquiries)
+                {
+                    var createdInCairo = TimeZoneInfo.ConvertTime(inquiry.CreatedAt, cairo);
+                    var statusValue = ((int)inquiry.Status).ToString(CultureInfo.InvariantCulture);
+                    <tr>
+                        <td>
+                            <div class="fw-semibold">@inquiry.CustomerName</div>
+                            <bdi dir="ltr" class="text-body-secondary">@inquiry.Phone</bdi>
+                        </td>
+                        <td>@inquiry.ServiceType</td>
+                        <td class="text-nowrap">
+                            <time datetime="@createdInCairo.ToString("O", CultureInfo.InvariantCulture)">
+                                @createdInCairo.ToString("dd MMM yyyy، HH:mm", CultureInfo.GetCultureInfo("ar-EG"))
+                            </time>
+                        </td>
+                        <td>@statusLabels.First(item => item.Value == statusValue).Text</td>
+                        <td>@(inquiry.CoordinatorName ?? "غير مسند")</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}

@@ -36,6 +36,8 @@
 | What does the team mean by Quote Sent? | Staff send quotes through their existing process and record the result in the dashboard. |
 | What language do staff need? | Use an Arabic staff interface with right-to-left layout. Technical documentation is in English for the exercise. |
 | How are staff accounts created? | The initial manager and coordinator accounts are provisioned during setup. In-app account administration can be scoped later. |
+| Is there a service catalogue or a required phone format? | During intake, Noor enters the service type as text and records the phone as supplied. The system trims surrounding whitespace and searches the recorded phone by substring. |
+| Which time zone should the inquiry list use? | Show the date and time in Cairo. Store the creation timestamp in UTC. |
 
 ### Client acceptance scenarios
 

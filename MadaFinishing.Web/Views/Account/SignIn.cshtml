@@ -1,0 +1,27 @@
+@model SignInInput
+@{
+    ViewData["Title"] = "تسجيل الدخول";
+}
+
+<section class="card shadow-sm mx-auto mt-md-4" style="max-width: 32rem;">
+    <div class="card-body p-4">
+        <h1 class="h3 mb-4">تسجيل الدخول</h1>
+        <form asp-action="SignIn" method="post" novalidate>
+            <input asp-for="ReturnUrl" type="hidden" />
+            <div asp-validation-summary="ModelOnly" class="text-danger" role="alert"></div>
+            <div class="mb-3">
+                <label asp-for="Email" class="form-label"></label>
+                <input asp-for="Email" type="email" autocomplete="username" dir="ltr" required class="form-control"
+                       aria-describedby="email-error" />
+                <span asp-validation-for="Email" id="email-error" class="text-danger"></span>
+            </div>
+            <div class="mb-4">
+                <label asp-for="Password" class="form-label"></label>
+                <input asp-for="Password" autocomplete="current-password" dir="ltr" required class="form-control"
+                       aria-describedby="password-error" />
+                <span asp-validation-for="Password" id="password-error" class="text-danger"></span>
+            </div>
+            <button type="submit" class="btn btn-primary">تسجيل الدخول</button>
+        </form>
+    </div>
+</section>

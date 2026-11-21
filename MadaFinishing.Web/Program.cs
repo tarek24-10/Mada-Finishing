@@ -1,29 +1,55 @@
-var builder = WebApplication.CreateBuilder(args);
+using MadaFinishing.Web.Data;
+using MadaFinishing.Web.Inquiries;
+using MadaFinishing.Web.Models;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 
-// Add services to the container.
+const string setupManagerArgument = "--setup-manager";
+var setupManager = args.Contains(setupManagerArgument);
+var builder = WebApplication.CreateBuilder(args.Where(argument => argument != setupManagerArgument).ToArray());
+
+builder.Services.AddDbContext<MadaFinishingDbContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("MadaFinishing")));
+builder.Services.AddIdentity<StaffUser, IdentityRole>(options => options.User.RequireUniqueEmail = true)
+    .AddEntityFrameworkStores<MadaFinishingDbContext>();
+builder.Services.ConfigureApplicationCookie(options =>
+{
+    options.LoginPath = "/Account/SignIn";
+    options.AccessDeniedPath = "/Account/AccessDenied";
+});
+builder.Services.AddScoped<InquiryService>();
 builder.Services.AddControllersWithViews();
 
-var app = builder.Build();
+await using var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+if (setupManager)
+{
+    await using var scope = app.Services.CreateAsyncScope();
+    await ManagerSetup.RunAsync(scope.ServiceProvider, app.Configuration);
+    return;
+}
+
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Home/Error");
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
 }
 
 app.UseHttpsRedirection();
+app.UseStaticFiles();
 app.UseRouting();
-
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapStaticAssets();
 
 app.MapControllerRoute(
     name: "default",
-    pattern: "{controller=Home}/{action=Index}/{id?}")
+    pattern: "{controller=Inquiries}/{action=Index}/{id?}")
     .WithStaticAssets();
 
+await app.RunAsync();
 
-app.Run();
+public partial class Program
+{
+}
