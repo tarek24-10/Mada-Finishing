@@ -44,13 +44,10 @@ public sealed class ManagerInquiryIntakeTests
                     ["InitialManager:Password"] = TestPassword,
                     ["InitialManager:DisplayName"] = "نور"
                 })));
-        client = factory.CreateClient(new WebApplicationFactoryClientOptions
-        {
-            BaseAddress = new Uri("https://localhost"),
-            AllowAutoRedirect = false
-        });
+        client = CreateStaffClient();
         await using var scope = factory.Services.CreateAsyncScope();
-        await ManagerSetup.RunAsync(scope.ServiceProvider, scope.ServiceProvider.GetRequiredService<IConfiguration>());
+        await StaffSetup.RunAsync(scope.ServiceProvider, scope.ServiceProvider.GetRequiredService<IConfiguration>(),
+            StaffUser.ManagerRole);
     }
 
     [TestCleanup]
@@ -86,20 +83,20 @@ public sealed class ManagerInquiryIntakeTests
             Inquiry.Create(otherCustomer, "01134567890", "تشطيب", null, DateTimeOffset.UtcNow.AddDays(-2)));
         await database.SaveChangesAsync();
 
-        using var signIn = await SignInAsync(ManagerEmail);
+        using var signIn = await SignInAsync(client, ManagerEmail);
         Assert.AreEqual(HttpStatusCode.Redirect, signIn.StatusCode);
         using var listAfterSignIn = await client.GetAsync(signIn.Headers.Location!);
         Assert.AreEqual(HttpStatusCode.OK, listAfterSignIn.StatusCode);
 
         var token = ReadToken(await client.GetStringAsync("/Inquiries/Create"));
-        using var invalid = await PostAsync("/Inquiries/Create",
+        using var invalid = await PostAsync(client, "/Inquiries/Create",
             ("CustomerName", customer), ("ServiceType", "دهانات"), ("__RequestVerificationToken", token));
         Assert.AreEqual(HttpStatusCode.OK, invalid.StatusCode);
         StringAssert.Contains(WebUtility.HtmlDecode(await invalid.Content.ReadAsStringAsync()), "أدخل رقم الهاتف.");
         Assert.IsFalse(await database.Inquiries.AnyAsync(inquiry => inquiry.CustomerName == customer));
 
         var beforeCreation = DateTimeOffset.UtcNow;
-        using var created = await PostAsync("/Inquiries/Create", ("CustomerName", customer), ("Phone", Phone),
+        using var created = await PostAsync(client, "/Inquiries/Create", ("CustomerName", customer), ("Phone", Phone),
             ("ServiceType", "دهانات"), ("Message", "طلب من البريد الإلكتروني"), ("__RequestVerificationToken", token));
         Assert.AreEqual(HttpStatusCode.Redirect, created.StatusCode);
 
@@ -142,26 +139,177 @@ public sealed class ManagerInquiryIntakeTests
         Assert.AreEqual(HttpStatusCode.Redirect, anonymous.StatusCode);
         StringAssert.Contains(anonymous.Headers.Location!.ToString(), "/Account/SignIn");
 
-        using var signIn = await SignInAsync(OtherStaffEmail);
+        using var signIn = await SignInAsync(client, OtherStaffEmail);
         Assert.AreEqual(HttpStatusCode.Redirect, signIn.StatusCode);
         using var list = await client.GetAsync("/Inquiries");
         Assert.AreEqual(HttpStatusCode.Redirect, list.StatusCode);
         StringAssert.Contains(list.Headers.Location!.ToString(), "/Account/AccessDenied");
-        using var post = await PostAsync("/Inquiries/Create", ("CustomerName", "محاولة"));
+        using var post = await PostAsync(client, "/Inquiries/Create", ("CustomerName", "محاولة"));
         Assert.AreEqual(HttpStatusCode.Redirect, post.StatusCode);
         StringAssert.Contains(post.Headers.Location!.ToString(), "/Account/AccessDenied");
         using var denied = await client.GetAsync(post.Headers.Location);
         Assert.AreEqual(HttpStatusCode.Forbidden, denied.StatusCode);
     }
 
-    private async Task<HttpResponseMessage> SignInAsync(string email)
+    [TestMethod]
+    public async Task ManagerCanReassignInquiryAndFormerCoordinatorLosesAccess()
+    {
+        const string mariamEmail = "mariam@example.test";
+        const string omarEmail = "omar@example.test";
+        const string customer = "عميل يحتاج إلى إسناد";
+        await using var scope = factory!.Services.CreateAsyncScope();
+        var database = scope.ServiceProvider.GetRequiredService<MadaFinishingDbContext>();
+        var roles = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+        var users = scope.ServiceProvider.GetRequiredService<UserManager<StaffUser>>();
+        Assert.IsTrue((await roles.CreateAsync(new IdentityRole(StaffUser.CoordinatorRole))).Succeeded);
+        var mariam = await CreateCoordinatorAsync(users, mariamEmail, "مريم");
+        var omar = await CreateCoordinatorAsync(users, omarEmail, "عمر");
+        var manager = (await users.FindByEmailAsync(ManagerEmail))!;
+        var inquiry = Inquiry.Create(customer, Phone, "تشطيب", "رسالة العميل", DateTimeOffset.UtcNow);
+        database.Inquiries.Add(inquiry);
+        await database.SaveChangesAsync();
+
+        using var mariamClient = CreateStaffClient();
+        using var omarClient = CreateStaffClient();
+        using var managerSignIn = await SignInAsync(client, ManagerEmail);
+        using var mariamSignIn = await SignInAsync(mariamClient, mariamEmail);
+        using var omarSignIn = await SignInAsync(omarClient, omarEmail);
+        Assert.AreEqual(HttpStatusCode.Redirect, managerSignIn.StatusCode);
+        Assert.AreEqual(HttpStatusCode.Redirect, mariamSignIn.StatusCode);
+        Assert.AreEqual(HttpStatusCode.Redirect, omarSignIn.StatusCode);
+
+        var detailsPath = $"/Inquiries/Details/{inquiry.Id}";
+        var assignmentPath = $"/Inquiries/Assign/{inquiry.Id}";
+        using var unassignedDetails = await mariamClient.GetAsync(detailsPath);
+        Assert.AreEqual(HttpStatusCode.NotFound, unassignedDetails.StatusCode);
+        var managerForm = await client.GetStringAsync(detailsPath);
+        var options = WebUtility.HtmlDecode(managerForm);
+        StringAssert.Contains(options, $">{mariam.DisplayName}</option>");
+        StringAssert.Contains(options, $">{omar.DisplayName}</option>");
+        Assert.IsFalse(options.Contains($"value=\"{manager.Id}\"", StringComparison.Ordinal));
+        var token = ReadToken(managerForm);
+
+        using var invalid = await PostAsync(client, assignmentPath, ("coordinatorId", manager.Id),
+            ("__RequestVerificationToken", token));
+        Assert.AreEqual(HttpStatusCode.OK, invalid.StatusCode);
+        StringAssert.Contains(WebUtility.HtmlDecode(await invalid.Content.ReadAsStringAsync()), "اختر منسق مبيعات صالحًا.");
+        Assert.IsFalse(await database.InquiryAssignments.AnyAsync());
+
+        using var first = await PostAsync(client, assignmentPath, ("coordinatorId", mariam.Id),
+            ("__RequestVerificationToken", token));
+        Assert.AreEqual(HttpStatusCode.Redirect, first.StatusCode);
+        var mariamDetailsPage = await mariamClient.GetStringAsync(detailsPath);
+        StringAssert.Contains(WebUtility.HtmlDecode(mariamDetailsPage), customer);
+        Assert.IsFalse(mariamDetailsPage.Contains("name=\"coordinatorId\"", StringComparison.Ordinal));
+        StringAssert.Contains(WebUtility.HtmlDecode(await mariamClient.GetStringAsync("/Inquiries?search=12345678")), customer);
+        using var omarBeforeReassignment = await omarClient.GetAsync(detailsPath);
+        Assert.AreEqual(HttpStatusCode.NotFound, omarBeforeReassignment.StatusCode);
+
+        using var reassigned = await PostAsync(client, assignmentPath, ("coordinatorId", omar.Id),
+            ("__RequestVerificationToken", token));
+        Assert.AreEqual(HttpStatusCode.Redirect, reassigned.StatusCode);
+
+        using var savedLink = await mariamClient.GetAsync(detailsPath);
+        Assert.AreEqual(HttpStatusCode.NotFound, savedLink.StatusCode);
+        var formerCoordinatorList = WebUtility.HtmlDecode(await mariamClient.GetStringAsync("/Inquiries?search=12345678"));
+        Assert.IsFalse(formerCoordinatorList.Contains(customer, StringComparison.Ordinal));
+        var currentCoordinatorList = WebUtility.HtmlDecode(await omarClient.GetStringAsync("/Inquiries?search=12345678"));
+        StringAssert.Contains(currentCoordinatorList, customer);
+        StringAssert.Contains(WebUtility.HtmlDecode(await omarClient.GetStringAsync(detailsPath)), customer);
+        using var formerCoordinatorPost = await PostAsync(mariamClient, assignmentPath, ("coordinatorId", mariam.Id),
+            ("__RequestVerificationToken", ReadToken(mariamDetailsPage)));
+        Assert.AreEqual(HttpStatusCode.Redirect, formerCoordinatorPost.StatusCode);
+        StringAssert.Contains(formerCoordinatorPost.Headers.Location!.ToString(), "/Account/AccessDenied");
+
+        using var unchanged = await PostAsync(client, assignmentPath, ("coordinatorId", omar.Id),
+            ("__RequestVerificationToken", token));
+        Assert.AreEqual(HttpStatusCode.Redirect, unchanged.StatusCode);
+        var managerDetails = WebUtility.HtmlDecode(await client.GetStringAsync(detailsPath));
+        StringAssert.Contains(managerDetails, "نور — من غير مسند إلى مريم");
+        StringAssert.Contains(managerDetails, "نور — من مريم إلى عمر");
+
+        var saved = await database.Inquiries.AsNoTracking().SingleAsync(item => item.Id == inquiry.Id);
+        Assert.AreEqual(omar.Id, saved.CoordinatorId);
+        Assert.AreEqual(InquiryStatus.New, saved.Status);
+        var history = await database.InquiryAssignments.AsNoTracking()
+            .Where(entry => entry.InquiryId == inquiry.Id).OrderBy(entry => entry.Id).ToListAsync();
+        Assert.HasCount(2, history);
+        Assert.AreEqual(manager.Id, history[0].ActorId);
+        Assert.IsNull(history[0].PreviousCoordinatorId);
+        Assert.AreEqual(mariam.Id, history[0].NewCoordinatorId);
+        Assert.AreEqual(manager.Id, history[1].ActorId);
+        Assert.AreEqual(mariam.Id, history[1].PreviousCoordinatorId);
+        Assert.AreEqual(omar.Id, history[1].NewCoordinatorId);
+        Assert.IsTrue(history[1].AssignedAt >= history[0].AssignedAt);
+
+        await database.Inquiries.Where(item => item.Id == inquiry.Id)
+            .ExecuteUpdateAsync(update => update.SetProperty(item => item.Status, InquiryStatus.Closed));
+        using var closed = await PostAsync(client, assignmentPath, ("coordinatorId", mariam.Id),
+            ("__RequestVerificationToken", token));
+        Assert.AreEqual(HttpStatusCode.OK, closed.StatusCode);
+        StringAssert.Contains(WebUtility.HtmlDecode(await closed.Content.ReadAsStringAsync()), "لا يمكن تغيير مسؤول استفسار مغلق.");
+        Assert.AreEqual(2, await database.InquiryAssignments.CountAsync());
+        Assert.AreEqual(omar.Id, await database.Inquiries.Where(item => item.Id == inquiry.Id)
+            .Select(item => item.CoordinatorId).SingleAsync());
+    }
+
+    [TestMethod]
+    public async Task ConcurrentAssignmentDoesNotWriteStaleHistory()
+    {
+        await using var scope = factory!.Services.CreateAsyncScope();
+        var database = scope.ServiceProvider.GetRequiredService<MadaFinishingDbContext>();
+        var roles = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+        var users = scope.ServiceProvider.GetRequiredService<UserManager<StaffUser>>();
+        Assert.IsTrue((await roles.CreateAsync(new IdentityRole(StaffUser.CoordinatorRole))).Succeeded);
+        var mariam = await CreateCoordinatorAsync(users, "mariam@example.test", "مريم");
+        var omar = await CreateCoordinatorAsync(users, "omar@example.test", "عمر");
+        var manager = (await users.FindByEmailAsync(ManagerEmail))!;
+        var inquiry = Inquiry.Create("عميل", Phone, "تشطيب", null, DateTimeOffset.UtcNow);
+        database.Inquiries.Add(inquiry);
+        await database.SaveChangesAsync();
+
+        await using var firstScope = factory.Services.CreateAsyncScope();
+        await using var secondScope = factory.Services.CreateAsyncScope();
+        var firstDatabase = firstScope.ServiceProvider.GetRequiredService<MadaFinishingDbContext>();
+        var secondDatabase = secondScope.ServiceProvider.GetRequiredService<MadaFinishingDbContext>();
+        var firstCopy = await firstDatabase.Inquiries.SingleAsync(item => item.Id == inquiry.Id);
+        var staleCopy = await secondDatabase.Inquiries.SingleAsync(item => item.Id == inquiry.Id);
+
+        firstDatabase.InquiryAssignments.Add(firstCopy.AssignTo(mariam.Id, manager.Id, DateTimeOffset.UtcNow)!);
+        secondDatabase.InquiryAssignments.Add(staleCopy.AssignTo(omar.Id, manager.Id, DateTimeOffset.UtcNow)!);
+        await firstDatabase.SaveChangesAsync();
+
+        await Assert.ThrowsExactlyAsync<DbUpdateConcurrencyException>(() => secondDatabase.SaveChangesAsync());
+        var savedCoordinator = await database.Inquiries.Where(item => item.Id == inquiry.Id)
+            .Select(item => item.CoordinatorId).SingleAsync();
+        Assert.AreEqual(mariam.Id, savedCoordinator);
+        var savedAssignment = await database.InquiryAssignments.SingleAsync(entry => entry.InquiryId == inquiry.Id);
+        Assert.AreEqual(mariam.Id, savedAssignment.NewCoordinatorId);
+    }
+
+    private HttpClient CreateStaffClient() => factory!.CreateClient(new WebApplicationFactoryClientOptions
+    {
+        BaseAddress = new Uri("https://localhost"),
+        AllowAutoRedirect = false
+    });
+
+    private static async Task<StaffUser> CreateCoordinatorAsync(UserManager<StaffUser> users, string email, string name)
+    {
+        var user = new StaffUser { UserName = email, Email = email, DisplayName = name };
+        Assert.IsTrue((await users.CreateAsync(user, TestPassword)).Succeeded);
+        Assert.IsTrue((await users.AddToRoleAsync(user, StaffUser.CoordinatorRole)).Succeeded);
+        return user;
+    }
+
+    private static async Task<HttpResponseMessage> SignInAsync(HttpClient client, string email)
     {
         var token = ReadToken(await client.GetStringAsync("/Account/SignIn"));
-        return await PostAsync("/Account/SignIn", ("Email", email), ("Password", TestPassword),
+        return await PostAsync(client, "/Account/SignIn", ("Email", email), ("Password", TestPassword),
             ("__RequestVerificationToken", token));
     }
 
-    private async Task<HttpResponseMessage> PostAsync(string path, params (string Name, string Value)[] fields)
+    private static async Task<HttpResponseMessage> PostAsync(
+        HttpClient client, string path, params (string Name, string Value)[] fields)
     {
         using var content = new FormUrlEncodedContent(fields.Select(field =>
             new KeyValuePair<string, string>(field.Name, field.Value)));

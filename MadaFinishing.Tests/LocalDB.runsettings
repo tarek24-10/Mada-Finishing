@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RunSettings>
+  <RunConfiguration>
+    <EnvironmentVariables>
+      <MADA_TEST_SQL_SERVER>Server=(localdb)\MSSQLLocalDB;Integrated Security=True;TrustServerCertificate=True</MADA_TEST_SQL_SERVER>
+    </EnvironmentVariables>
+  </RunConfiguration>
+</RunSettings>
