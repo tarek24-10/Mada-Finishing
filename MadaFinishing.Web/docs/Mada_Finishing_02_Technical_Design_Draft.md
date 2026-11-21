@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Translate the approved workflow into screens and data needs, then confirm the technical choices before implementation. Scope and acceptance scenarios are maintained in the [discovery and requirements document](https://chatgpt.com/library?file_id=libfile_f6782d68b8848191a5e465d6c1608de7).
+Translate the approved workflow into screens and data needs, then confirm the technical choices before implementation. Scope and acceptance scenarios are maintained in the [discovery and requirements document](Mada_Finishing_01_Discovery_and_Requirements.md).
 
 ## Approved
 
