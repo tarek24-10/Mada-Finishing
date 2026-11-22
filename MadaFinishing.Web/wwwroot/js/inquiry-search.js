@@ -67,13 +67,17 @@
             const searchWasEdited = search.value !== requestSearch;
             const typedSearch = search.value;
             const moveFocus = document.activeElement === reset;
+            const paging = document.activeElement?.closest("#inquiry-pagination");
             results.replaceWith(updatedResults);
             updateControls(updatedResults);
             if (searchWasEdited) search.value = typedSearch;
             if (moveFocus && reset.classList.contains("d-none")) search.focus();
+            if (paging) updatedResults.querySelector("#results-title").focus();
             if (url.href !== window.location.href) history.pushState(null, "", url);
             notice.classList.add("visually-hidden");
-            notice.textContent = updatedResults.querySelector("#inquiry-result-count").textContent.trim();
+            const count = updatedResults.querySelector("#inquiry-result-count").textContent.trim();
+            const page = updatedResults.querySelector("#inquiry-page-description")?.textContent.trim();
+            notice.textContent = page ? `${count}، ${page}` : count;
         } catch {
             if (request.signal.aborted) return;
             if (restoringHistory) {
@@ -96,14 +100,13 @@
     });
 
     function followSearchLink(event) {
-        const link = event.target.closest("a");
+        const link = event.target.closest("#inquiry-status-filters a, #inquiry-search-reset, #inquiry-pagination a");
         if (!link || event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
 
         event.preventDefault();
         loadResults(new URL(link.href));
     }
 
-    filters.addEventListener("click", followSearchLink);
-    reset.addEventListener("click", followSearchLink);
+    document.addEventListener("click", followSearchLink);
     window.addEventListener("popstate", () => loadResults(new URL(window.location.href), true));
 })();

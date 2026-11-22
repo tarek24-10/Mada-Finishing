@@ -6,6 +6,8 @@ namespace MadaFinishing.Web.Inquiries;
 
 public sealed class InquiryService(MadaFinishingDbContext database)
 {
+    private const int InquiryPageSize = 5;
+
     public async Task CreateAsync(InquiryInput input, CancellationToken cancellationToken)
     {
         var inquiry = Inquiry.Create(
@@ -14,8 +16,9 @@ public sealed class InquiryService(MadaFinishingDbContext database)
         await database.SaveChangesAsync(cancellationToken);
     }
 
-    public async Task<IReadOnlyList<InquiryListRow>> ListAsync(
-        string staffId, bool isManager, string? search, InquiryStatus? status, CancellationToken cancellationToken)
+    public async Task<InquiryListViewModel> ListAsync(
+        string staffId, bool isManager, string? search, InquiryStatus? status, int pageNumber,
+        CancellationToken cancellationToken)
     {
         var inquiries = VisibleInquiries(staffId, isManager);
         if (!string.IsNullOrWhiteSpace(search))
@@ -29,13 +32,25 @@ public sealed class InquiryService(MadaFinishingDbContext database)
             inquiries = inquiries.Where(inquiry => inquiry.Status == status);
         }
 
-        return await inquiries
+        var totalCount = await inquiries.CountAsync(cancellationToken);
+        if (totalCount == 0)
+        {
+            return new InquiryListViewModel(search, status, [], 1, 1, 0);
+        }
+
+        var totalPages = (totalCount - 1) / InquiryPageSize + 1;
+        var currentPage = Math.Clamp(pageNumber, 1, totalPages);
+        var rows = await inquiries
             .OrderByDescending(inquiry => inquiry.CreatedAt)
             .ThenByDescending(inquiry => inquiry.Id)
+            .Skip((currentPage - 1) * InquiryPageSize)
+            .Take(InquiryPageSize)
             .Select(inquiry => new InquiryListRow(
                 inquiry.Id, inquiry.CustomerName, inquiry.Phone, inquiry.ServiceType, inquiry.CreatedAt, inquiry.Status,
                 inquiry.Coordinator == null ? null : inquiry.Coordinator.DisplayName))
             .ToListAsync(cancellationToken);
+
+        return new InquiryListViewModel(search, status, rows, currentPage, totalPages, totalCount);
     }
 
     public async Task<InquiryDetailsViewModel?> DetailsAsync(

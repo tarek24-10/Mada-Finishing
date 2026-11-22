@@ -20,6 +20,8 @@ Local release acceptance passed on November 22, 2026. The build completed with z
 
 The maintenance backlog is open. For a reported defect, record the expected behavior, what happened, and the affected inquiry workflow. For a new capability, agree on the outcome and acceptance criteria before marking it Ready.
 
+- **Paginate the inquiry list** (R3) — **Done**. The [design](Mada_Finishing_02_Technical_Design_Draft.md#screen-flow) describes page size, sorting, and search and filter behavior.
+
 ### Proposed use case 4. Review inquiries waiting for quotes
 
 **Status:** Proposed. Supervisor approval is pending.
