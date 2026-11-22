@@ -1,0 +1,92 @@
+@using System.Globalization
+@model InquiryDetailsViewModel
+@{
+    ViewData["Title"] = "تفاصيل الاستفسار";
+    var culture = CultureInfo.GetCultureInfo("ar-EG");
+    var cairo = TimeZoneInfo.FindSystemTimeZoneById("Africa/Cairo");
+    var createdInCairo = TimeZoneInfo.ConvertTime(Model.CreatedAt, cairo);
+    var statusValue = ((int)Model.Status).ToString(CultureInfo.InvariantCulture);
+    var statusLabel = Html.GetEnumSelectList<InquiryStatus>().First(item => item.Value == statusValue).Text;
+}
+
+<div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+    <h1 class="h2 mb-0">@Model.CustomerName</h1>
+    <a asp-action="Index" class="btn btn-outline-secondary">العودة إلى الاستفسارات</a>
+</div>
+
+<section class="card card-body mb-4" aria-labelledby="inquiry-details">
+    <h2 id="inquiry-details" class="h5">تفاصيل الاستفسار</h2>
+    <dl class="row mb-0">
+        <dt class="col-sm-3">رقم الهاتف</dt>
+        <dd class="col-sm-9"><bdi dir="ltr">@Model.Phone</bdi></dd>
+        <dt class="col-sm-3">نوع الخدمة</dt>
+        <dd class="col-sm-9">@Model.ServiceType</dd>
+        <dt class="col-sm-3">تاريخ الإدخال</dt>
+        <dd class="col-sm-9">
+            <time datetime="@createdInCairo.ToString("O", CultureInfo.InvariantCulture)">
+                @createdInCairo.ToString("dd MMM yyyy، HH:mm", culture)
+            </time>
+        </dd>
+        <dt class="col-sm-3">الحالة</dt>
+        <dd class="col-sm-9">@statusLabel</dd>
+        <dt class="col-sm-3">المسؤول الحالي</dt>
+        <dd class="col-sm-9">@(Model.CoordinatorName ?? "غير مسند")</dd>
+        @if (Model.Message is not null)
+        {
+            <dt class="col-sm-3">رسالة العميل</dt>
+            <dd class="col-sm-9 text-break">@Model.Message</dd>
+        }
+    </dl>
+</section>
+
+<div asp-validation-summary="ModelOnly" class="text-danger" role="alert"></div>
+@if (User.IsInRole(StaffUser.ManagerRole) && Model.Status != InquiryStatus.Closed)
+{
+    <section class="card card-body mb-4" aria-labelledby="assign-coordinator">
+        <h2 id="assign-coordinator" class="h5">إسناد الاستفسار</h2>
+        @if (Model.Coordinators.Count == 0)
+        {
+            <p class="mb-0">لا توجد حسابات لمنسقي المبيعات.</p>
+        }
+        else
+        {
+            <form asp-action="Assign" asp-route-id="@Model.Id" method="post" novalidate
+                  class="d-flex flex-wrap align-items-end gap-3">
+                <div class="flex-grow-1">
+                    <label for="coordinatorId" class="form-label">منسق المبيعات</label>
+                    <select name="coordinatorId" id="coordinatorId" class="form-select" required>
+                        <option value="">اختر منسقًا</option>
+                        @foreach (var coordinator in Model.Coordinators)
+                        {
+                            <option value="@coordinator.Id" selected="@(coordinator.Id == Model.CoordinatorId)">@coordinator.DisplayName</option>
+                        }
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-primary">حفظ الإسناد</button>
+            </form>
+        }
+    </section>
+}
+
+<section class="card card-body" aria-labelledby="assignment-history">
+    <h2 id="assignment-history" class="h5">سجل الإسناد</h2>
+    @if (Model.History.Count == 0)
+    {
+        <p class="mb-0">لا توجد عمليات إسناد.</p>
+    }
+    else
+    {
+        <ol class="list-group list-group-flush">
+            @foreach (var entry in Model.History)
+            {
+                var assignedInCairo = TimeZoneInfo.ConvertTime(entry.AssignedAt, cairo);
+                <li class="list-group-item px-0">
+                    <div>@entry.ActorName — من @(entry.PreviousCoordinatorName ?? "غير مسند") إلى @entry.NewCoordinatorName</div>
+                    <time class="text-body-secondary" datetime="@assignedInCairo.ToString("O", CultureInfo.InvariantCulture)">
+                        @assignedInCairo.ToString("dd MMM yyyy، HH:mm", culture)
+                    </time>
+                </li>
+            }
+        </ol>
+    }
+</section>

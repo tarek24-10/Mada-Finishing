@@ -16,7 +16,7 @@ partial class MadaFinishingDbContextModelSnapshot : ModelSnapshot
     // If you encounter a merge conflict in the line below, it means you need to
     // discard one of the migration branches and recreate its migrations on top of
     // the other branch. See https://aka.ms/efcore-docs-migrations-conflicts for more info.
-    public override string LastMigrationId => "20261120173244_InitialInquiryIntake";
+    public override string LastMigrationId => "20261121145048_AddInquiryAssignments";
 
     protected override void BuildModel(ModelBuilder modelBuilder)
     {
@@ -36,6 +36,7 @@ partial class MadaFinishingDbContextModelSnapshot : ModelSnapshot
                 SqlServerPropertyBuilderExtensions.UseIdentityColumn(id);
 
                 b.Property<string>("CoordinatorId")
+                    .IsConcurrencyToken()
                     .HasColumnType("nvarchar(450)");
 
                 b.Property<DateTimeOffset>("CreatedAt")
@@ -61,6 +62,7 @@ partial class MadaFinishingDbContextModelSnapshot : ModelSnapshot
                     .HasColumnType("nvarchar(120)");
 
                 b.Property<int>("Status")
+                    .IsConcurrencyToken()
                     .HasColumnType("int");
 
                 b.HasKey("Id");
@@ -68,6 +70,44 @@ partial class MadaFinishingDbContextModelSnapshot : ModelSnapshot
                 b.HasIndex("CoordinatorId");
 
                 b.ToTable("Inquiries");
+            });
+
+        modelBuilder.Entity("MadaFinishing.Web.Models.InquiryAssignment", b =>
+            {
+                var id = b.Property<int>("Id")
+                    .ValueGeneratedOnAdd()
+                    .HasColumnType("int");
+
+                SqlServerPropertyBuilderExtensions.UseIdentityColumn(id);
+
+                b.Property<string>("ActorId")
+                    .IsRequired()
+                    .HasColumnType("nvarchar(450)");
+
+                b.Property<DateTimeOffset>("AssignedAt")
+                    .HasColumnType("datetimeoffset");
+
+                b.Property<int>("InquiryId")
+                    .HasColumnType("int");
+
+                b.Property<string>("NewCoordinatorId")
+                    .IsRequired()
+                    .HasColumnType("nvarchar(450)");
+
+                b.Property<string>("PreviousCoordinatorId")
+                    .HasColumnType("nvarchar(450)");
+
+                b.HasKey("Id");
+
+                b.HasIndex("ActorId");
+
+                b.HasIndex("InquiryId");
+
+                b.HasIndex("NewCoordinatorId");
+
+                b.HasIndex("PreviousCoordinatorId");
+
+                b.ToTable("InquiryAssignments");
             });
 
         modelBuilder.Entity("MadaFinishing.Web.Models.StaffUser", b =>
@@ -280,6 +320,40 @@ partial class MadaFinishingDbContextModelSnapshot : ModelSnapshot
                     .HasForeignKey("CoordinatorId");
 
                 b.Navigation("Coordinator");
+            });
+
+        modelBuilder.Entity("MadaFinishing.Web.Models.InquiryAssignment", b =>
+            {
+                b.HasOne("MadaFinishing.Web.Models.StaffUser", "Actor")
+                    .WithMany()
+                    .HasForeignKey("ActorId")
+                    .OnDelete(DeleteBehavior.NoAction)
+                    .IsRequired();
+
+                b.HasOne("MadaFinishing.Web.Models.Inquiry", "Inquiry")
+                    .WithMany()
+                    .HasForeignKey("InquiryId")
+                    .OnDelete(DeleteBehavior.Cascade)
+                    .IsRequired();
+
+                b.HasOne("MadaFinishing.Web.Models.StaffUser", "NewCoordinator")
+                    .WithMany()
+                    .HasForeignKey("NewCoordinatorId")
+                    .OnDelete(DeleteBehavior.NoAction)
+                    .IsRequired();
+
+                b.HasOne("MadaFinishing.Web.Models.StaffUser", "PreviousCoordinator")
+                    .WithMany()
+                    .HasForeignKey("PreviousCoordinatorId")
+                    .OnDelete(DeleteBehavior.NoAction);
+
+                b.Navigation("Actor");
+
+                b.Navigation("Inquiry");
+
+                b.Navigation("NewCoordinator");
+
+                b.Navigation("PreviousCoordinator");
             });
 
         modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>

@@ -4,6 +4,7 @@
     <TargetFramework>net11.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <RunSettingsFilePath Condition="'$(OS)' == 'Windows_NT' and '$(MADA_TEST_SQL_SERVER)' == ''">$(MSBuildProjectDirectory)/LocalDB.runsettings</RunSettingsFilePath>
   </PropertyGroup>
 
   <ItemGroup>

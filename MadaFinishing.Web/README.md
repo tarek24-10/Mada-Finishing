@@ -26,6 +26,20 @@ Open [the dashboard](https://localhost:7015/), sign in as Noor, enter a sample i
 
 To test from the build output directory with the same user secrets, run `dotnet MadaFinishing.Web.dll --environment Development --urls http://localhost:5000`. For deployment, run `dotnet publish MadaFinishing.Web` and start the app from the publish directory.
 
+### Set up coordinators
+
+Run this setup once per coordinator. Use a separate email address for each staff account. Setup applies any pending migrations and keeps the password of an existing account.
+
+```powershell
+$env:InitialCoordinator__Email = 'mariam@example.test'
+$env:InitialCoordinator__DisplayName = 'مريم'
+$env:InitialCoordinator__Password = Read-Host 'Coordinator password' -MaskInput
+dotnet run --project MadaFinishing.Web --launch-profile https --no-build -- --setup-coordinator
+Remove-Item Env:InitialCoordinator__Email, Env:InitialCoordinator__DisplayName, Env:InitialCoordinator__Password
+```
+
+Repeat for Omar. Sign in as Noor, open an inquiry from the list, and assign it to Mariam. In a separate browser session, sign in as Mariam, open it, and save its URL. As Noor, reassign it to Omar and verify both entries in the assignment history. Confirm that Mariam cannot find or open it and that Omar can.
+
 ## Test
 
 ```powershell
@@ -37,3 +51,4 @@ Each integration test creates a separate, uniquely named SQL Server database, ap
 
 - **Inquiry unit test.** Arrange inquiry fields and a known creation time. Act by creating the inquiry. Assert that it records that time and starts New and unassigned. A failure indicates a problem with creation defaults.
 - **Manager intake integration test.** Arrange a migrated test database, manager account, and older inquiries. Act by signing in, submitting the form, and searching. Assert that invalid input is rejected and valid input persists and appears in the matching results. A failure indicates which part of the request, validation, persistence, or list behavior broke.
+- **Assignment tests.** The unit test arranges an inquiry assigned to Mariam, reassigns it to Omar, and asserts that status stays the same and history records both owners. The HTTP integration test arranges a migrated database and separate signed-in sessions for Noor, Mariam, and Omar, then checks access and history after assigning and reassigning. The concurrency test loads the same inquiry twice, saves one assignment, then asserts that the stale save fails and only the first entry persists. To run these checks, add `--filter "FullyQualifiedName~AssignTo|FullyQualifiedName~ManagerCanReassign|FullyQualifiedName~ConcurrentAssignment"` to the test command above.
