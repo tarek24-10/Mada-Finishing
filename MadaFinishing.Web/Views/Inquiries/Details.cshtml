@@ -1,13 +1,6 @@
-@using System.Globalization
 @model InquiryDetailsViewModel
 @{
     ViewData["Title"] = "تفاصيل الاستفسار";
-    var culture = CultureInfo.GetCultureInfo("ar-EG");
-    var cairo = TimeZoneInfo.FindSystemTimeZoneById("Africa/Cairo");
-    var createdInCairo = TimeZoneInfo.ConvertTime(Model.CreatedAt, cairo);
-    var statusLabels = Html.GetEnumSelectList<InquiryStatus>();
-    string StatusLabel(InquiryStatus status) =>
-        statusLabels.First(item => item.Value == ((int)status).ToString(CultureInfo.InvariantCulture)).Text;
     var nextStatus = Inquiry.NextStatusAfter(Model.Status);
 }
 
@@ -27,9 +20,7 @@
                 <dd class="col-sm-8">@Model.ServiceType</dd>
                 <dt class="col-sm-4 text-body-secondary fw-medium">تاريخ الإدخال</dt>
                 <dd class="col-sm-8">
-                    <time datetime="@createdInCairo.ToString("O", CultureInfo.InvariantCulture)">
-                        @createdInCairo.ToString("dd MMM yyyy، HH:mm", culture)
-                    </time>
+                    <partial name="_CairoTime" model="Model.CreatedAt" />
                 </dd>
                 <dt class="col-sm-4 text-body-secondary fw-medium">الحالة</dt>
                 <dd class="col-sm-8"><partial name="_InquiryStatusBadge" model="Model.Status" /></dd>
@@ -87,7 +78,7 @@
                 {
                     <form asp-action="ChangeStatus" asp-route-id="@Model.Id" method="post" class="mb-3">
                         <input type="hidden" name="status" value="@((int)next)" />
-                        <button type="submit" class="btn btn-outline-primary">تغيير الحالة إلى @StatusLabel(next)</button>
+                        <button type="submit" class="btn btn-outline-primary">تغيير الحالة إلى @Html.DisplayFor(_ => next)</button>
                     </form>
                 }
                 <form asp-action="ChangeStatus" asp-route-id="@Model.Id" method="post" novalidate class="border-top pt-3">
@@ -101,43 +92,6 @@
         }
     </div>
     <div class="col-12 col-lg-5">
-        <section class="card card-body bg-white border-0 rounded-4 shadow-sm p-4" aria-labelledby="inquiry-history">
-            <h2 id="inquiry-history" class="h5 fw-bold mb-3">سجل النشاط</h2>
-            @if (Model.History.Count == 0)
-            {
-                <p class="text-body-secondary mb-0">لا توجد أنشطة مسجلة.</p>
-            }
-            else
-            {
-                <ol class="list-group list-group-flush activity-list ms-1">
-                    @foreach (var entry in Model.History)
-                    {
-                        var occurredInCairo = TimeZoneInfo.ConvertTime(entry.OccurredAt, cairo);
-                        <li class="list-group-item bg-white ps-3 pe-0 py-3">
-                            @if (entry.Kind == InquiryHistoryKind.Assignment)
-                            {
-                                <div class="fw-semibold">@entry.ActorName — من @(entry.PreviousCoordinatorName ?? "غير مسند") إلى @entry.NewCoordinatorName</div>
-                            }
-                            else if (entry.Kind == InquiryHistoryKind.Note)
-                            {
-                                <div class="fw-semibold">@entry.ActorName — ملاحظة متابعة</div>
-                                <p class="inquiry-history-text text-break mb-1">@entry.Text</p>
-                            }
-                            else if (entry.PreviousStatus is { } previousStatus && entry.NewStatus is { } newStatus)
-                            {
-                                <div class="fw-semibold">@entry.ActorName — من @StatusLabel(previousStatus) إلى @StatusLabel(newStatus)</div>
-                                @if (newStatus == InquiryStatus.Closed)
-                                {
-                                    <p class="text-break mb-1">سبب الإغلاق: @entry.Text</p>
-                                }
-                            }
-                            <time class="small text-body-secondary" datetime="@occurredInCairo.ToString("O", CultureInfo.InvariantCulture)">
-                                @occurredInCairo.ToString("dd MMM yyyy، HH:mm", culture)
-                            </time>
-                        </li>
-                    }
-                </ol>
-            }
-        </section>
+        <partial name="_InquiryHistory" model="Model" />
     </div>
 </div>

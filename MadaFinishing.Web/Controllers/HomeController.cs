@@ -1,6 +1,6 @@
 using System.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
-using MadaFinishing.Web.Models;
+using MadaFinishing.Web.ViewModels;
 
 namespace MadaFinishing.Web.Controllers;
 

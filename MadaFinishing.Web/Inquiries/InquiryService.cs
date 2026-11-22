@@ -1,5 +1,6 @@
 using MadaFinishing.Web.Data;
 using MadaFinishing.Web.Models;
+using MadaFinishing.Web.ViewModels;
 using Microsoft.EntityFrameworkCore;
 
 namespace MadaFinishing.Web.Inquiries;
@@ -8,7 +9,7 @@ public sealed class InquiryService(MadaFinishingDbContext database)
 {
     private const int InquiryPageSize = 5;
 
-    public async Task CreateAsync(InquiryInput input, CancellationToken cancellationToken)
+    public async Task CreateAsync(CreateInquiryInput input, CancellationToken cancellationToken)
     {
         var inquiry = Inquiry.Create(
             input.CustomerName, input.Phone, input.ServiceType, input.Message, DateTimeOffset.UtcNow);
@@ -16,22 +17,11 @@ public sealed class InquiryService(MadaFinishingDbContext database)
         await database.SaveChangesAsync(cancellationToken);
     }
 
-    public async Task<InquiryListViewModel> ListAsync(
+    public async Task<InquiryListViewModel> SearchAsync(
         string staffId, bool isManager, string? search, InquiryStatus? status, int pageNumber,
         CancellationToken cancellationToken)
     {
-        var inquiries = VisibleInquiries(staffId, isManager);
-        if (!string.IsNullOrWhiteSpace(search))
-        {
-            var term = search.Trim();
-            inquiries = inquiries.Where(inquiry => inquiry.CustomerName.Contains(term) || inquiry.Phone.Contains(term));
-        }
-
-        if (status is not null)
-        {
-            inquiries = inquiries.Where(inquiry => inquiry.Status == status);
-        }
-
+        var inquiries = FilterInquiries(InquiriesVisibleTo(staffId, isManager), search, status);
         var totalCount = await inquiries.CountAsync(cancellationToken);
         if (totalCount == 0)
         {
@@ -53,10 +43,10 @@ public sealed class InquiryService(MadaFinishingDbContext database)
         return new InquiryListViewModel(search, status, rows, currentPage, totalPages, totalCount);
     }
 
-    public async Task<InquiryDetailsViewModel?> DetailsAsync(
+    public async Task<InquiryDetailsViewModel?> GetDetailsAsync(
         int id, string staffId, bool isManager, CancellationToken cancellationToken)
     {
-        var details = await VisibleInquiries(staffId, isManager)
+        var details = await InquiriesVisibleTo(staffId, isManager)
             .Where(inquiry => inquiry.Id == id)
             .Select(inquiry => new InquiryDetailsViewModel(
                 inquiry.Id, inquiry.CustomerName, inquiry.Phone, inquiry.ServiceType, inquiry.Message,
@@ -68,6 +58,21 @@ public sealed class InquiryService(MadaFinishingDbContext database)
             return null;
         }
 
+        var history = await GetHistoryAsync(id, staffId, isManager, cancellationToken);
+        var coordinators = isManager && details.Status != InquiryStatus.Closed
+            ? await CoordinatorAccounts()
+                .OrderBy(user => user.DisplayName)
+                .ThenBy(user => user.Id)
+                .Select(user => new CoordinatorOption(user.Id, user.DisplayName))
+                .ToListAsync(cancellationToken)
+            : [];
+
+        return details with { History = history, Coordinators = coordinators };
+    }
+
+    private async Task<IReadOnlyList<InquiryHistoryRow>> GetHistoryAsync(
+        int id, string staffId, bool isManager, CancellationToken cancellationToken)
+    {
         var assignments = await database.InquiryAssignments.AsNoTracking()
             .Where(entry => entry.InquiryId == id && (isManager || entry.Inquiry.CoordinatorId == staffId))
             .Select(entry => new InquiryHistoryRow(
@@ -84,21 +89,11 @@ public sealed class InquiryService(MadaFinishingDbContext database)
                 entry.PreviousStatus, entry.NewStatus, entry.Text))
             .ToListAsync(cancellationToken);
 
-        var history = assignments.Concat(followUps)
+        return assignments.Concat(followUps)
             .OrderByDescending(entry => entry.OccurredAt)
             .ThenByDescending(entry => entry.Kind)
             .ThenByDescending(entry => entry.Id)
             .ToArray();
-
-        var coordinators = isManager && details.Status != InquiryStatus.Closed
-            ? await CoordinatorAccounts()
-                .OrderBy(user => user.DisplayName)
-                .ThenBy(user => user.Id)
-                .Select(user => new CoordinatorOption(user.Id, user.DisplayName))
-                .ToListAsync(cancellationToken)
-            : [];
-
-        return details with { History = history, Coordinators = coordinators };
     }
 
     public async Task<AssignmentResult> AssignAsync(
@@ -183,7 +178,24 @@ public sealed class InquiryService(MadaFinishingDbContext database)
         }
     }
 
-    private IQueryable<Inquiry> VisibleInquiries(string staffId, bool isManager) =>
+    private static IQueryable<Inquiry> FilterInquiries(
+        IQueryable<Inquiry> inquiries, string? search, InquiryStatus? status)
+    {
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var term = search.Trim();
+            inquiries = inquiries.Where(inquiry => inquiry.CustomerName.Contains(term) || inquiry.Phone.Contains(term));
+        }
+
+        if (status is not null)
+        {
+            inquiries = inquiries.Where(inquiry => inquiry.Status == status);
+        }
+
+        return inquiries;
+    }
+
+    private IQueryable<Inquiry> InquiriesVisibleTo(string staffId, bool isManager) =>
         database.Inquiries.AsNoTracking().Where(inquiry => isManager || inquiry.CoordinatorId == staffId);
 
     private IQueryable<StaffUser> CoordinatorAccounts()

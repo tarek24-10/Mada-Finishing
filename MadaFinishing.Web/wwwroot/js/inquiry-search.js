@@ -31,6 +31,23 @@
         }
     }
 
+    function displayResults(results, updatedResults, requestSearch, url) {
+        const searchWasEdited = search.value !== requestSearch;
+        const typedSearch = search.value;
+        const moveFocus = document.activeElement === reset;
+        const paging = document.activeElement?.closest("#inquiry-pagination");
+        results.replaceWith(updatedResults);
+        updateControls(updatedResults);
+        if (searchWasEdited) search.value = typedSearch;
+        if (moveFocus && reset.classList.contains("d-none")) search.focus();
+        if (paging) updatedResults.querySelector("#results-title").focus();
+        if (url.href !== window.location.href) history.pushState(null, "", url);
+        notice.classList.add("visually-hidden");
+        const count = updatedResults.querySelector("#inquiry-result-count").textContent.trim();
+        const page = updatedResults.querySelector("#inquiry-page-description")?.textContent.trim();
+        notice.textContent = page ? `${count}، ${page}` : count;
+    }
+
     async function loadResults(url, restoringHistory = false) {
         pendingSearch?.abort();
         const request = new AbortController();
@@ -64,20 +81,7 @@
                 .querySelector("#inquiry-results");
             if (!updatedResults) throw new Error("Search response has no results section");
 
-            const searchWasEdited = search.value !== requestSearch;
-            const typedSearch = search.value;
-            const moveFocus = document.activeElement === reset;
-            const paging = document.activeElement?.closest("#inquiry-pagination");
-            results.replaceWith(updatedResults);
-            updateControls(updatedResults);
-            if (searchWasEdited) search.value = typedSearch;
-            if (moveFocus && reset.classList.contains("d-none")) search.focus();
-            if (paging) updatedResults.querySelector("#results-title").focus();
-            if (url.href !== window.location.href) history.pushState(null, "", url);
-            notice.classList.add("visually-hidden");
-            const count = updatedResults.querySelector("#inquiry-result-count").textContent.trim();
-            const page = updatedResults.querySelector("#inquiry-page-description")?.textContent.trim();
-            notice.textContent = page ? `${count}، ${page}` : count;
+            displayResults(results, updatedResults, requestSearch, url);
         } catch {
             if (request.signal.aborted) return;
             if (restoringHistory) {

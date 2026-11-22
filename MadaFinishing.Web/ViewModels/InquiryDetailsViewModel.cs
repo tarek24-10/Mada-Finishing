@@ -1,4 +1,5 @@
-namespace MadaFinishing.Web.Models;
+using MadaFinishing.Web.Models;
+namespace MadaFinishing.Web.ViewModels;
 
 public sealed record InquiryDetailsViewModel(
     int Id, string CustomerName, string Phone, string ServiceType, string? Message, DateTimeOffset CreatedAt,

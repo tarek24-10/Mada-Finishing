@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace MadaFinishing.Web.Models;
+namespace MadaFinishing.Web.ViewModels;
 
 public sealed class SignInInput
 {

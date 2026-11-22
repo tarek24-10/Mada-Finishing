@@ -1,8 +1,9 @@
+using MadaFinishing.Web.Models;
 using System.ComponentModel.DataAnnotations;
 
-namespace MadaFinishing.Web.Models;
+namespace MadaFinishing.Web.ViewModels;
 
-public sealed class InquiryInput
+public sealed class CreateInquiryInput
 {
     [Display(Name = "اسم العميل")]
     [Required(ErrorMessage = "أدخل اسم العميل.")]
