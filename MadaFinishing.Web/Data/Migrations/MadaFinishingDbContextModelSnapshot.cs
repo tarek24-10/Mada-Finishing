@@ -16,7 +16,7 @@ partial class MadaFinishingDbContextModelSnapshot : ModelSnapshot
     // If you encounter a merge conflict in the line below, it means you need to
     // discard one of the migration branches and recreate its migrations on top of
     // the other branch. See https://aka.ms/efcore-docs-migrations-conflicts for more info.
-    public override string LastMigrationId => "20261121145048_AddInquiryAssignments";
+    public override string LastMigrationId => "20261121212829_AddInquiryFollowUps";
 
     protected override void BuildModel(ModelBuilder modelBuilder)
     {
@@ -108,6 +108,43 @@ partial class MadaFinishingDbContextModelSnapshot : ModelSnapshot
                 b.HasIndex("PreviousCoordinatorId");
 
                 b.ToTable("InquiryAssignments");
+            });
+
+        modelBuilder.Entity("MadaFinishing.Web.Models.InquiryFollowUp", b =>
+            {
+                var id = b.Property<int>("Id")
+                    .ValueGeneratedOnAdd()
+                    .HasColumnType("int");
+
+                SqlServerPropertyBuilderExtensions.UseIdentityColumn(id);
+
+                b.Property<string>("ActorId")
+                    .IsRequired()
+                    .HasColumnType("nvarchar(450)");
+
+                b.Property<int>("InquiryId")
+                    .HasColumnType("int");
+
+                b.Property<int?>("NewStatus")
+                    .HasColumnType("int");
+
+                b.Property<DateTimeOffset>("OccurredAt")
+                    .HasColumnType("datetimeoffset");
+
+                b.Property<int?>("PreviousStatus")
+                    .HasColumnType("int");
+
+                b.Property<string>("Text")
+                    .HasMaxLength(2000)
+                    .HasColumnType("nvarchar(2000)");
+
+                b.HasKey("Id");
+
+                b.HasIndex("ActorId");
+
+                b.HasIndex("InquiryId");
+
+                b.ToTable("InquiryFollowUps");
             });
 
         modelBuilder.Entity("MadaFinishing.Web.Models.StaffUser", b =>
@@ -354,6 +391,25 @@ partial class MadaFinishingDbContextModelSnapshot : ModelSnapshot
                 b.Navigation("NewCoordinator");
 
                 b.Navigation("PreviousCoordinator");
+            });
+
+        modelBuilder.Entity("MadaFinishing.Web.Models.InquiryFollowUp", b =>
+            {
+                b.HasOne("MadaFinishing.Web.Models.StaffUser", "Actor")
+                    .WithMany()
+                    .HasForeignKey("ActorId")
+                    .OnDelete(DeleteBehavior.NoAction)
+                    .IsRequired();
+
+                b.HasOne("MadaFinishing.Web.Models.Inquiry", "Inquiry")
+                    .WithMany()
+                    .HasForeignKey("InquiryId")
+                    .OnDelete(DeleteBehavior.Cascade)
+                    .IsRequired();
+
+                b.Navigation("Actor");
+
+                b.Navigation("Inquiry");
             });
 
         modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>

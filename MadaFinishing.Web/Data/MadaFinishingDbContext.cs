@@ -9,6 +9,7 @@ public sealed class MadaFinishingDbContext(DbContextOptions<MadaFinishingDbConte
 {
     public DbSet<Inquiry> Inquiries => Set<Inquiry>();
     public DbSet<InquiryAssignment> InquiryAssignments => Set<InquiryAssignment>();
+    public DbSet<InquiryFollowUp> InquiryFollowUps => Set<InquiryFollowUp>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -18,5 +19,6 @@ public sealed class MadaFinishingDbContext(DbContextOptions<MadaFinishingDbConte
         assignment.HasOne(entry => entry.Actor).WithMany().OnDelete(DeleteBehavior.NoAction);
         assignment.HasOne(entry => entry.PreviousCoordinator).WithMany().OnDelete(DeleteBehavior.NoAction);
         assignment.HasOne(entry => entry.NewCoordinator).WithMany().OnDelete(DeleteBehavior.NoAction);
+        builder.Entity<InquiryFollowUp>().HasOne(entry => entry.Actor).WithMany().OnDelete(DeleteBehavior.NoAction);
     }
 }
