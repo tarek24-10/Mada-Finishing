@@ -1,0 +1,12 @@
+@model InquiryStatus
+@{
+    var color = Model switch
+    {
+        InquiryStatus.New => "bg-primary-subtle text-primary-emphasis",
+        InquiryStatus.Contacted => "bg-info-subtle text-info-emphasis",
+        InquiryStatus.QuoteSent => "bg-warning-subtle text-warning-emphasis",
+        _ => "bg-secondary-subtle text-secondary-emphasis"
+    };
+}
+
+<span class="badge rounded-pill fw-semibold @color">@Html.DisplayForModel()</span>

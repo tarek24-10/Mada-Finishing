@@ -1,42 +1,130 @@
-html {
-  font-size: 14px;
+:root {
+    --bs-body-bg: #f5f6f2;
+    --bs-body-color: #182f2b;
+    --bs-link-color-rgb: 18, 95, 82;
+    --bs-link-hover-color-rgb: 12, 65, 55;
+    --mada-teal: #125f52;
+    --mada-dark: #123b34;
+    --mada-sand: #f2dfae;
 }
 
-@media (min-width: 768px) {
-  html {
-    font-size: 16px;
-  }
+.app-header {
+    background-color: var(--mada-dark);
 }
 
-.btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {
-  box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
+.brand-mark {
+    display: inline-grid;
+    width: 2.25rem;
+    height: 2.25rem;
+    place-items: center;
+    background-color: var(--mada-sand);
+    color: var(--mada-dark);
+}
+
+.btn-primary,
+.btn-outline-primary {
+    --bs-btn-focus-shadow-rgb: 18, 95, 82;
+    --bs-btn-hover-color: #fff;
+    --bs-btn-hover-bg: #0e4e43;
+    --bs-btn-hover-border-color: #0e4e43;
+    --bs-btn-active-color: #fff;
+    --bs-btn-active-bg: #0b4138;
+    --bs-btn-active-border-color: #0b4138;
+}
+
+.btn-primary {
+    --bs-btn-bg: var(--mada-teal);
+    --bs-btn-border-color: var(--mada-teal);
+}
+
+.btn-outline-primary {
+    --bs-btn-color: var(--mada-teal);
+    --bs-btn-border-color: var(--mada-teal);
+}
+
+.form-control,
+.form-select {
+    background-color: #fff;
+}
+
+.form-control:focus,
+.form-select:focus {
+    border-color: #488779;
+    box-shadow: 0 0 0 0.25rem rgba(18, 95, 82, 0.18);
 }
 
 .input-validation-error {
-  border-color: var(--bs-danger);
+    border-color: var(--bs-danger);
 }
 
-.navbar-light .navbar-brand:focus-visible, .navbar-light .navbar-nav .nav-link:focus-visible {
-  outline: 2px solid #212529;
-  outline-offset: 2px;
-  border-radius: 2px;
-  box-shadow: none;
+.validation-summary-valid {
+    display: none;
 }
 
-html {
-  position: relative;
-  min-height: 100%;
+:where(a, button, [tabindex]):focus-visible {
+    outline: 2px solid currentColor;
+    outline-offset: 3px;
 }
 
-body {
-  margin-bottom: 60px;
+.inquiry-history-text {
+    white-space: pre-wrap;
 }
 
-.form-floating > .form-control-plaintext::placeholder, .form-floating > .form-control::placeholder {
-  color: var(--bs-secondary-color);
-  text-align: end;
+.dashboard-heading {
+    color: #fff;
+    background: linear-gradient(130deg, #163f36, #0e2b26);
 }
 
-.form-floating > .form-control-plaintext:focus::placeholder, .form-floating > .form-control:focus::placeholder {
-  text-align: start;
+.dashboard-photo {
+    min-height: 9rem;
+}
+
+.finishing-photo {
+    background-color: #766857;
+    background-image: url("../images/finishing-materials.jpg");
+    background-position: center;
+    background-size: cover;
+}
+
+.sign-in-panel {
+    min-height: 18rem;
+    background-color: var(--mada-dark);
+    background-image: linear-gradient(0deg, rgba(12, 30, 25, .9), rgba(12, 30, 25, .12) 80%),
+                      url("../images/finishing-materials.jpg");
+    background-position: center;
+    background-size: cover;
+}
+
+.status-filters {
+    --bs-nav-link-color: var(--mada-teal);
+    --bs-nav-link-hover-color: var(--mada-dark);
+    --bs-nav-pills-link-active-bg: var(--mada-dark);
+    --bs-nav-pills-border-radius: var(--bs-border-radius-pill);
+}
+
+.status-filters .nav-link:not(.active) {
+    background-color: #eef2ef;
+}
+
+.status-filters .nav-link:not(.active):hover {
+    background-color: #dceae3;
+}
+
+.inquiry-table {
+    --bs-table-bg: #fff;
+}
+
+.activity-list {
+    border-inline-start: 2px solid #dae7df;
+}
+
+.activity-list .list-group-item::before {
+    position: absolute;
+    inset-inline-start: -0.375rem;
+    top: 1.3rem;
+    width: 0.625rem;
+    height: 0.625rem;
+    border-radius: 50%;
+    background-color: var(--mada-teal);
+    content: "";
 }

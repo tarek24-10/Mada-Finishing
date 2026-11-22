@@ -1,8 +1,11 @@
-﻿@{
-    ViewData["Title"] = "Home Page";
+@{
+    ViewData["Title"] = "مدى للتشطيبات";
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
-</div>
+<section class="card card-body bg-white border-0 rounded-4 shadow-sm p-4 p-lg-5">
+    <h1 class="h2 fw-bold">مدى للتشطيبات</h1>
+    <p class="text-body-secondary">لوحة متابعة استفسارات العملاء لفريق العمل.</p>
+    <div>
+        <a asp-controller="Inquiries" asp-action="Index" class="btn btn-primary">فتح لوحة الاستفسارات</a>
+    </div>
+</section>

@@ -10,6 +10,7 @@ namespace MadaFinishing.Web.Controllers;
 public sealed class InquiriesController(InquiryService inquiries, UserManager<StaffUser> users) : Controller
 {
     [HttpGet]
+    [ResponseCache(Location = ResponseCacheLocation.None, NoStore = true)]
     public async Task<IActionResult> Index(string? search, InquiryStatus? status, CancellationToken cancellationToken)
     {
         if (!ModelState.IsValid)
@@ -24,7 +25,10 @@ public sealed class InquiriesController(InquiryService inquiries, UserManager<St
         }
 
         var rows = await inquiries.ListAsync(staffId, User.IsInRole(StaffUser.ManagerRole), search, status, cancellationToken);
-        return View(new InquiryListViewModel(search, status, rows));
+        var model = new InquiryListViewModel(search, status, rows);
+        return Request.Headers["X-Requested-With"] == "XMLHttpRequest"
+            ? PartialView("_InquiryResults", model)
+            : View(model);
     }
 
     [HttpGet]

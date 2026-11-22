@@ -2,78 +2,60 @@
 @model InquiryListViewModel
 @{
     ViewData["Title"] = "الاستفسارات";
-    var cairo = TimeZoneInfo.FindSystemTimeZoneById("Africa/Cairo");
     var statusLabels = Html.GetEnumSelectList<InquiryStatus>();
 }
 
-<div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
-    <h1 class="h2 mb-0">الاستفسارات</h1>
-    @if (User.IsInRole(StaffUser.ManagerRole))
-    {
-        <a asp-action="Create" class="btn btn-primary">استفسار جديد</a>
-    }
-</div>
-
-<form asp-action="Index" method="get" class="card card-body mb-4">
-    <div class="row g-3 align-items-end">
-        <div class="col-md">
-            <label asp-for="Search" class="form-label">اسم العميل أو رقم الهاتف</label>
-            <input asp-for="Search" type="search" class="form-control" />
-        </div>
-        <div class="col-md-4">
-            <label asp-for="Status" class="form-label">الحالة</label>
-            <select asp-for="Status" asp-items="statusLabels" class="form-select">
-                <option value="">كل الحالات</option>
-            </select>
-        </div>
-        <div class="col-md-auto d-flex flex-wrap gap-2">
-            <button type="submit" class="btn btn-outline-primary">بحث</button>
-            @if (!string.IsNullOrWhiteSpace(Model.Search) || Model.Status is not null)
+<section class="dashboard-heading rounded-4 overflow-hidden mb-4" aria-labelledby="dashboard-title">
+    <div class="row g-0">
+        <div class="col-md-7 p-4 p-lg-5">
+            <h1 id="dashboard-title" class="display-6 fw-bold mb-2">الاستفسارات</h1>
+            <p class="mb-4 text-white text-opacity-75">ابحث عن استفسار أو تابع حالته والمسؤول عنه.</p>
+            @if (User.IsInRole(StaffUser.ManagerRole))
             {
-                <a asp-action="Index" class="btn btn-outline-secondary">مسح البحث</a>
+                <a asp-action="Create" class="btn btn-light fw-semibold px-4">
+                    <span class="me-1" aria-hidden="true">+</span> استفسار جديد
+                </a>
             }
         </div>
+        <div class="col-md-5 finishing-photo dashboard-photo" aria-hidden="true"></div>
     </div>
-</form>
+</section>
 
-@if (Model.Inquiries.Count == 0)
-{
-    <p class="border rounded bg-white p-4">لا توجد استفسارات مطابقة.</p>
-}
-else
-{
-    <div class="table-responsive border rounded bg-white" role="region" aria-label="نتائج البحث" tabindex="0">
-        <table class="table table-hover align-middle mb-0">
-            <thead class="table-light">
-                <tr>
-                    <th scope="col">العميل</th>
-                    <th scope="col">الخدمة</th>
-                    <th scope="col">تاريخ الإدخال</th>
-                    <th scope="col">الحالة</th>
-                    <th scope="col">المسؤول</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var inquiry in Model.Inquiries)
-                {
-                    var createdInCairo = TimeZoneInfo.ConvertTime(inquiry.CreatedAt, cairo);
-                    var statusValue = ((int)inquiry.Status).ToString(CultureInfo.InvariantCulture);
-                    <tr>
-                        <td>
-                            <div><a asp-action="Details" asp-route-id="@inquiry.Id" class="fw-semibold">@inquiry.CustomerName</a></div>
-                            <bdi dir="ltr" class="text-body-secondary">@inquiry.Phone</bdi>
-                        </td>
-                        <td>@inquiry.ServiceType</td>
-                        <td class="text-nowrap">
-                            <time datetime="@createdInCairo.ToString("O", CultureInfo.InvariantCulture)">
-                                @createdInCairo.ToString("dd MMM yyyy، HH:mm", CultureInfo.GetCultureInfo("ar-EG"))
-                            </time>
-                        </td>
-                        <td>@statusLabels.First(item => item.Value == statusValue).Text</td>
-                        <td>@(inquiry.CoordinatorName ?? "غير مسند")</td>
-                    </tr>
-                }
-            </tbody>
-        </table>
+<section class="card bg-white border-0 rounded-4 shadow-sm mb-4" aria-labelledby="search-title">
+    <div class="card-body p-3 p-md-4">
+        <h2 id="search-title" class="h5 fw-bold mb-3">البحث والتصفية</h2>
+        <form id="inquiry-search" asp-action="Index" method="get" role="search">
+            <input name="Status" type="hidden" value="@((int?)Model.Status)" />
+            <div class="row g-2 align-items-end">
+                <div class="col-sm">
+                    <label asp-for="Search" class="form-label fw-semibold">اسم العميل أو رقم الهاتف</label>
+                    <input asp-for="Search" type="search" class="form-control" />
+                </div>
+                <div class="col-sm-auto d-flex flex-wrap gap-2">
+                    <button type="submit" class="btn btn-primary px-4">بحث</button>
+                    <a id="inquiry-search-reset" asp-action="Index"
+                       class="btn btn-outline-secondary @(string.IsNullOrWhiteSpace(Model.Search) && Model.Status is null ? "d-none" : null)">مسح البحث</a>
+                </div>
+            </div>
+        </form>
+        <nav id="inquiry-status-filters" class="nav nav-pills gap-2 mt-3 status-filters" aria-label="تصفية حسب الحالة">
+            <a asp-action="Index" asp-route-search="@Model.Search"
+               class="nav-link @(Model.Status is null ? "active" : null)"
+               aria-current="@(Model.Status is null ? "page" : null)">كل الحالات</a>
+            @foreach (var status in statusLabels)
+            {
+                var isSelected = status.Value == ((int?)Model.Status)?.ToString(CultureInfo.InvariantCulture);
+                <a asp-action="Index" asp-route-status="@status.Value" asp-route-search="@Model.Search"
+                   class="nav-link @(isSelected ? "active" : null)"
+                   aria-current="@(isSelected ? "page" : null)">@status.Text</a>
+            }
+        </nav>
     </div>
+</section>
+
+<p id="inquiry-search-notice" class="small mb-2 visually-hidden" role="status"></p>
+<partial name="_InquiryResults" model="Model" />
+
+@section Scripts {
+    <script src="~/js/inquiry-search.js" asp-append-version="true" defer></script>
 }

@@ -2,5 +2,10 @@
     ViewData["Title"] = "الوصول غير متاح";
 }
 
-<h1 class="h3">الوصول غير متاح</h1>
-<p>ليس لديك صلاحية الوصول إلى هذه الصفحة.</p>
+<section class="card border-0 shadow-sm rounded-4">
+    <div class="card-body p-4 p-lg-5">
+        <h1 class="h3 fw-bold">الوصول غير متاح</h1>
+        <p class="text-body-secondary">ليس لديك صلاحية الوصول إلى هذه الصفحة.</p>
+        <a asp-controller="Inquiries" asp-action="Index" class="btn btn-outline-primary">العودة إلى الاستفسارات</a>
+    </div>
+</section>
