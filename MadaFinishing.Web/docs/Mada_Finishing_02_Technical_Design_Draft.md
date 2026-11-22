@@ -26,6 +26,8 @@ Translate the approved workflow into screens and data needs, then confirm the te
 | New inquiry | The manager enters a customer name, phone, service type, and optional message. The inquiry starts as New and unassigned. |
 | Inquiry details | Show the customer message, current owner, status, and ordered history. The manager can assign or reassign an open inquiry. Its current coordinator can add notes, change status, or close it with a reason. Closed inquiries are read-only. |
 
+**Inquiry list pagination (R3).** The brief did not specify list size or daily volume. For the fictional client, assume about 10 inquiries per business day. The list shows 20 per page as the manager's records accumulate. A search or status change starts on page one. Paging preserves both filters and displays the total matching count. EF Core counts the filtered rows and reads only the requested page in newest-first order. No schema change is needed.
+
 Staff screens are in Arabic and use a right-to-left layout. The server applies the same access rules to list results, direct detail URLs, and form submissions.
 
 ## Logical data model
