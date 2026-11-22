@@ -2,6 +2,8 @@
 
 Mada Finishing is an Arabic staff dashboard for entering and finding customer inquiries. The .NET 11 solution contains an ASP.NET Core MVC web project and an MSTest project.
 
+See the [local handover](docs/LOCAL_HANDOVER.md) for the accepted build and day-to-day operation.
+
 ## Build and run
 
 Install the .NET 11 SDK and use a SQL Server instance. The following PowerShell 7 commands use Windows SQL Server LocalDB. Run them from the [repository root](../).
