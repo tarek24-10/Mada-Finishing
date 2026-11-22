@@ -40,6 +40,10 @@ Remove-Item Env:InitialCoordinator__Email, Env:InitialCoordinator__DisplayName, 
 
 Repeat for Omar. Sign in as Noor, open an inquiry from the list, and assign it to Mariam. In a separate browser session, sign in as Mariam, open it, and save its URL. As Noor, reassign it to Omar and verify both entries in the assignment history. Confirm that Mariam cannot find or open it and that Omar can.
 
+### Check follow-up and closure
+
+Run either staff setup command to apply the latest migration to an existing development database. As Omar, open the assigned inquiry, mark it Contacted, add a call note, and mark it Quote Sent. Try closing it with a blank reason and verify that it remains Quote Sent. Close it with a reason, then sign in as Noor. Verify the owner and the assignment, note, status, and closure entries. Both Noor and Omar can read the closed inquiry.
+
 ## Test
 
 ```powershell
@@ -52,3 +56,4 @@ Each integration test creates a separate, uniquely named SQL Server database, ap
 - **Inquiry unit test.** Arrange inquiry fields and a known creation time. Act by creating the inquiry. Assert that it records that time and starts New and unassigned. A failure indicates a problem with creation defaults.
 - **Manager intake integration test.** Arrange a migrated test database, manager account, and older inquiries. Act by signing in, submitting the form, and searching. Assert that invalid input is rejected and valid input persists and appears in the matching results. A failure indicates which part of the request, validation, persistence, or list behavior broke.
 - **Assignment tests.** The unit test arranges an inquiry assigned to Mariam, reassigns it to Omar, and asserts that status stays the same and history records both owners. The HTTP integration test arranges a migrated database and separate signed-in sessions for Noor, Mariam, and Omar, then checks access and history after assigning and reassigning. The concurrency test loads the same inquiry twice, saves one assignment, then asserts that the stale save fails and only the first entry persists. To run these checks, add `--filter "FullyQualifiedName~AssignTo|FullyQualifiedName~ManagerCanReassign|FullyQualifiedName~ConcurrentAssignment"` to the test command above.
+- **Follow-up and closure tests.** The unit tests arrange an inquiry in each open status, attempt closure with and without a reason, and assert that valid closure records the reason and blocks later changes. The HTTP integration test arranges an inquiry with a current and former coordinator, acts through the follow-up forms, and asserts that only the current coordinator can write and that the detail page and SQL Server agree after closure. To run these checks, add `--filter "FullyQualifiedName~ChangeStatus_RequiresReason|FullyQualifiedName~AddNote_Rejects|FullyQualifiedName~AssignedCoordinatorRecordsFollowUp"` to the test command above.

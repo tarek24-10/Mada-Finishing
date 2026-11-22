@@ -37,6 +37,13 @@ public sealed class Inquiry
     public StaffUser? Coordinator { get; private set; }
     public bool CanBeAssigned => Status != InquiryStatus.Closed;
 
+    public static InquiryStatus? NextStatusAfter(InquiryStatus status) => status switch
+    {
+        InquiryStatus.New => InquiryStatus.Contacted,
+        InquiryStatus.Contacted => InquiryStatus.QuoteSent,
+        _ => null
+    };
+
     public static Inquiry Create(
         string customerName, string phone, string serviceType, string? message, DateTimeOffset createdAt)
     {
@@ -66,5 +73,47 @@ public sealed class Inquiry
         var assignment = new InquiryAssignment(this, actorId, CoordinatorId, coordinatorId, assignedAt);
         CoordinatorId = coordinatorId;
         return assignment;
+    }
+
+    public (FollowUpResult Result, InquiryFollowUp? Activity) AddNote(
+        string actorId, string? note, DateTimeOffset occurredAt)
+    {
+        if (Status == InquiryStatus.Closed)
+        {
+            return (FollowUpResult.InquiryClosed, null);
+        }
+
+        note = note?.Trim();
+        if (string.IsNullOrEmpty(note) || note.Length > InquiryFollowUp.NoteMaxLength)
+        {
+            return (FollowUpResult.InvalidNote, null);
+        }
+
+        return (FollowUpResult.Saved, new InquiryFollowUp(this, actorId, occurredAt, note, null, null));
+    }
+
+    public (FollowUpResult Result, InquiryFollowUp? Activity) ChangeStatus(
+        string actorId, InquiryStatus? status, string? reason, DateTimeOffset occurredAt)
+    {
+        if (Status == InquiryStatus.Closed)
+        {
+            return (FollowUpResult.InquiryClosed, null);
+        }
+
+        if (status is null || (status != InquiryStatus.Closed && status != NextStatusAfter(Status)))
+        {
+            return (FollowUpResult.InvalidStatus, null);
+        }
+
+        reason = status == InquiryStatus.Closed ? reason?.Trim() : null;
+        if (status == InquiryStatus.Closed &&
+            (string.IsNullOrEmpty(reason) || reason.Length > InquiryFollowUp.ClosureReasonMaxLength))
+        {
+            return (FollowUpResult.InvalidClosureReason, null);
+        }
+
+        var activity = new InquiryFollowUp(this, actorId, occurredAt, reason, Status, status);
+        Status = status.Value;
+        return (FollowUpResult.Saved, activity);
     }
 }

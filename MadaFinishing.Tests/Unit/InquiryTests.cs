@@ -6,6 +6,56 @@ namespace MadaFinishing.Tests.Unit;
 public sealed class InquiryTests
 {
     [TestMethod]
+    [DataRow(InquiryStatus.New)]
+    [DataRow(InquiryStatus.Contacted)]
+    [DataRow(InquiryStatus.QuoteSent)]
+    public void ChangeStatus_RequiresReasonToCloseFromAnyOpenStatus(InquiryStatus initialStatus)
+    {
+        var occurredAt = new DateTimeOffset(2026, 11, 21, 9, 0, 0, TimeSpan.Zero);
+        var inquiry = Inquiry.Create("سارة", "01012345678", "دهانات", null, occurredAt);
+        while (inquiry.Status < initialStatus && Inquiry.NextStatusAfter(inquiry.Status) is { } next)
+        {
+            inquiry.ChangeStatus("omar", next, null, occurredAt);
+        }
+
+        var rejected = inquiry.ChangeStatus("omar", InquiryStatus.Closed, "  ", occurredAt);
+        Assert.AreEqual(FollowUpResult.InvalidClosureReason, rejected.Result);
+        Assert.AreEqual(initialStatus, inquiry.Status);
+        Assert.IsNull(rejected.Activity);
+
+        var closed = inquiry.ChangeStatus("omar", InquiryStatus.Closed, "  العميل اعتذر  ", occurredAt);
+        Assert.AreEqual(FollowUpResult.Saved, closed.Result);
+        Assert.AreEqual(InquiryStatus.Closed, inquiry.Status);
+        Assert.IsNotNull(closed.Activity);
+        Assert.AreEqual(initialStatus, closed.Activity.PreviousStatus);
+        Assert.AreEqual("العميل اعتذر", closed.Activity.Text);
+        Assert.AreEqual(FollowUpResult.InquiryClosed, inquiry.AddNote("omar", "ملاحظة", occurredAt).Result);
+        Assert.AreEqual(FollowUpResult.InquiryClosed,
+            inquiry.ChangeStatus("omar", InquiryStatus.Contacted, null, occurredAt).Result);
+    }
+
+    [TestMethod]
+    public void AddNote_RejectsBlankAndOverlongTextAndKeepsStatus()
+    {
+        var occurredAt = DateTimeOffset.UnixEpoch;
+        var inquiry = Inquiry.Create("سارة", "01012345678", "دهانات", null, occurredAt);
+
+        var blank = inquiry.AddNote("omar", "   ", occurredAt);
+        var overlong = inquiry.AddNote("omar", new string('a', InquiryFollowUp.NoteMaxLength + 1), occurredAt);
+        var recorded = inquiry.AddNote("omar", "  تم الاتصال  ", occurredAt);
+
+        Assert.AreEqual(FollowUpResult.InvalidNote, blank.Result);
+        Assert.AreEqual(FollowUpResult.InvalidNote, overlong.Result);
+        Assert.AreEqual(FollowUpResult.Saved, recorded.Result);
+        Assert.IsNotNull(recorded.Activity);
+        Assert.AreEqual("تم الاتصال", recorded.Activity.Text);
+        Assert.AreEqual("omar", recorded.Activity.ActorId);
+        Assert.AreEqual(occurredAt, recorded.Activity.OccurredAt);
+        Assert.IsNull(recorded.Activity.NewStatus);
+        Assert.AreEqual(InquiryStatus.New, inquiry.Status);
+    }
+
+    [TestMethod]
     public void AssignTo_RecordsPreviousAndNewCoordinatorWithoutChangingStatus()
     {
         var assignedAt = new DateTimeOffset(2026, 11, 21, 9, 0, 0, TimeSpan.Zero);

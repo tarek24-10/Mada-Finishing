@@ -53,15 +53,27 @@ public sealed class InquiryService(MadaFinishingDbContext database)
             return null;
         }
 
-        var history = await database.InquiryAssignments.AsNoTracking()
+        var assignments = await database.InquiryAssignments.AsNoTracking()
             .Where(entry => entry.InquiryId == id && (isManager || entry.Inquiry.CoordinatorId == staffId))
-            .OrderByDescending(entry => entry.AssignedAt)
-            .ThenByDescending(entry => entry.Id)
-            .Select(entry => new InquiryAssignmentRow(
-                entry.Actor.DisplayName,
+            .Select(entry => new InquiryHistoryRow(
+                entry.Id, InquiryHistoryKind.Assignment, entry.Actor.DisplayName, entry.AssignedAt,
                 entry.PreviousCoordinator == null ? null : entry.PreviousCoordinator.DisplayName,
-                entry.NewCoordinator.DisplayName, entry.AssignedAt))
+                entry.NewCoordinator.DisplayName, null, null, null))
             .ToListAsync(cancellationToken);
+
+        var followUps = await database.InquiryFollowUps.AsNoTracking()
+            .Where(entry => entry.InquiryId == id && (isManager || entry.Inquiry.CoordinatorId == staffId))
+            .Select(entry => new InquiryHistoryRow(
+                entry.Id, entry.NewStatus == null ? InquiryHistoryKind.Note : InquiryHistoryKind.StatusChange,
+                entry.Actor.DisplayName, entry.OccurredAt, null, null,
+                entry.PreviousStatus, entry.NewStatus, entry.Text))
+            .ToListAsync(cancellationToken);
+
+        var history = assignments.Concat(followUps)
+            .OrderByDescending(entry => entry.OccurredAt)
+            .ThenByDescending(entry => entry.Kind)
+            .ThenByDescending(entry => entry.Id)
+            .ToArray();
 
         var coordinators = isManager && details.Status != InquiryStatus.Closed
             ? await CoordinatorAccounts()
@@ -109,6 +121,50 @@ public sealed class InquiryService(MadaFinishingDbContext database)
         catch (DbUpdateConcurrencyException)
         {
             return AssignmentResult.Conflict;
+        }
+    }
+
+    public Task<FollowUpResult> AddNoteAsync(int id, string coordinatorId, string? note, CancellationToken cancellationToken) =>
+        SaveFollowUpAsync(id, coordinatorId, inquiry => inquiry.AddNote(coordinatorId, note, DateTimeOffset.UtcNow),
+            cancellationToken);
+
+    public Task<FollowUpResult> ChangeStatusAsync(
+        int id, string coordinatorId, InquiryStatus? status, string? reason, CancellationToken cancellationToken) =>
+        SaveFollowUpAsync(id, coordinatorId,
+            inquiry => inquiry.ChangeStatus(coordinatorId, status, reason, DateTimeOffset.UtcNow), cancellationToken);
+
+    private async Task<FollowUpResult> SaveFollowUpAsync(
+        int id, string coordinatorId, Func<Inquiry, (FollowUpResult Result, InquiryFollowUp? Activity)> apply,
+        CancellationToken cancellationToken)
+    {
+        var inquiry = await database.Inquiries.SingleOrDefaultAsync(
+            item => item.Id == id && item.CoordinatorId == coordinatorId, cancellationToken);
+        if (inquiry is null)
+        {
+            return FollowUpResult.InquiryNotFound;
+        }
+
+        var (result, activity) = apply(inquiry);
+        if (activity is null)
+        {
+            return result;
+        }
+
+        if (activity.NewStatus is null)
+        {
+            // A note must still check the inquiry's original owner and status in the same save.
+            database.Entry(inquiry).Property(item => item.Status).IsModified = true;
+        }
+
+        database.InquiryFollowUps.Add(activity);
+        try
+        {
+            await database.SaveChangesAsync(cancellationToken);
+            return FollowUpResult.Saved;
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            return FollowUpResult.Conflict;
         }
     }
 

@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Net;
 using System.Text.RegularExpressions;
 using MadaFinishing.Web.Data;
@@ -254,6 +255,113 @@ public sealed class ManagerInquiryIntakeTests
     }
 
     [TestMethod]
+    public async Task AssignedCoordinatorRecordsFollowUpAndClosedInquiryStaysReadOnly()
+    {
+        const string mariamEmail = "mariam@example.test";
+        const string omarEmail = "omar@example.test";
+        const string note = "تم الاتصال وشرح خيارات التشطيب";
+        const string reason = "اختار العميل تأجيل العمل";
+        await using var scope = factory!.Services.CreateAsyncScope();
+        var database = scope.ServiceProvider.GetRequiredService<MadaFinishingDbContext>();
+        var roles = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+        var users = scope.ServiceProvider.GetRequiredService<UserManager<StaffUser>>();
+        Assert.IsTrue((await roles.CreateAsync(new IdentityRole(StaffUser.CoordinatorRole))).Succeeded);
+        var mariam = await CreateCoordinatorAsync(users, mariamEmail, "مريم");
+        var omar = await CreateCoordinatorAsync(users, omarEmail, "عمر");
+        var manager = (await users.FindByEmailAsync(ManagerEmail))!;
+        var createdAt = DateTimeOffset.UtcNow;
+        var inquiry = Inquiry.Create("عميل المتابعة", Phone, "تشطيب", null, createdAt);
+        database.Inquiries.Add(inquiry);
+        database.InquiryAssignments.Add(inquiry.AssignTo(mariam.Id, manager.Id, createdAt)!);
+        await database.SaveChangesAsync();
+
+        using var mariamClient = CreateStaffClient();
+        using var omarClient = CreateStaffClient();
+        using var managerSignIn = await SignInAsync(client, ManagerEmail);
+        using var mariamSignIn = await SignInAsync(mariamClient, mariamEmail);
+        using var omarSignIn = await SignInAsync(omarClient, omarEmail);
+        var detailsPath = $"/Inquiries/Details/{inquiry.Id}";
+        var notePath = $"/Inquiries/AddNote/{inquiry.Id}";
+        var managerPage = await client.GetStringAsync(detailsPath);
+        var managerToken = ReadToken(managerPage);
+        var formerOwnerToken = ReadToken(await mariamClient.GetStringAsync(detailsPath));
+
+        using var reassigned = await PostAsync(client, $"/Inquiries/Assign/{inquiry.Id}",
+            ("coordinatorId", omar.Id), ("__RequestVerificationToken", managerToken));
+        Assert.AreEqual(HttpStatusCode.Redirect, reassigned.StatusCode);
+        var coordinatorPage = await omarClient.GetStringAsync(detailsPath);
+        var token = ReadToken(coordinatorPage);
+
+        using var managerWrite = await PostAsync(client, notePath, ("note", note),
+            ("__RequestVerificationToken", managerToken));
+        Assert.AreEqual(HttpStatusCode.Redirect, managerWrite.StatusCode);
+        StringAssert.Contains(managerWrite.Headers.Location!.ToString(), "/Account/AccessDenied");
+        using var formerOwnerWrite = await PostAsync(mariamClient, notePath, ("note", note),
+            ("__RequestVerificationToken", formerOwnerToken));
+        Assert.AreEqual(HttpStatusCode.NotFound, formerOwnerWrite.StatusCode);
+        using var formerOwnerStatus = await PostStatusAsync(mariamClient, inquiry.Id, InquiryStatus.Contacted,
+            formerOwnerToken);
+        Assert.AreEqual(HttpStatusCode.NotFound, formerOwnerStatus.StatusCode);
+
+        using var skipped = await PostStatusAsync(omarClient, inquiry.Id, InquiryStatus.QuoteSent, token);
+        Assert.AreEqual(HttpStatusCode.OK, skipped.StatusCode);
+        StringAssert.Contains(WebUtility.HtmlDecode(await skipped.Content.ReadAsStringAsync()), "اختر الحالة التالية المتاحة.");
+        using var blankNote = await PostAsync(omarClient, notePath, ("note", ""),
+            ("__RequestVerificationToken", token));
+        Assert.AreEqual(HttpStatusCode.OK, blankNote.StatusCode);
+        Assert.IsFalse(await database.InquiryFollowUps.AnyAsync());
+
+        using var contacted = await PostStatusAsync(omarClient, inquiry.Id, InquiryStatus.Contacted, token);
+        Assert.AreEqual(HttpStatusCode.Redirect, contacted.StatusCode);
+        using var recorded = await PostAsync(omarClient, notePath, ("note", $"  {note}  "),
+            ("__RequestVerificationToken", token));
+        Assert.AreEqual(HttpStatusCode.Redirect, recorded.StatusCode);
+        using var quoted = await PostStatusAsync(omarClient, inquiry.Id, InquiryStatus.QuoteSent, token);
+        Assert.AreEqual(HttpStatusCode.Redirect, quoted.StatusCode);
+
+        using var noReason = await PostStatusAsync(omarClient, inquiry.Id, InquiryStatus.Closed, token);
+        Assert.AreEqual(HttpStatusCode.OK, noReason.StatusCode);
+        StringAssert.Contains(WebUtility.HtmlDecode(await noReason.Content.ReadAsStringAsync()), "أدخل سبب إغلاق");
+        Assert.AreEqual(InquiryStatus.QuoteSent, await database.Inquiries.Where(item => item.Id == inquiry.Id)
+            .Select(item => item.Status).SingleAsync());
+        Assert.AreEqual(3, await database.InquiryFollowUps.CountAsync());
+
+        using var closed = await PostStatusAsync(omarClient, inquiry.Id, InquiryStatus.Closed, token, reason);
+        Assert.AreEqual(HttpStatusCode.Redirect, closed.StatusCode);
+        using var closedNote = await PostAsync(omarClient, notePath, ("note", note),
+            ("__RequestVerificationToken", token));
+        Assert.AreEqual(HttpStatusCode.OK, closedNote.StatusCode);
+        StringAssert.Contains(WebUtility.HtmlDecode(await closedNote.Content.ReadAsStringAsync()), "الاستفسار مغلق ولا يمكن تعديله.");
+        using var reopened = await PostStatusAsync(omarClient, inquiry.Id, InquiryStatus.Contacted, token);
+        Assert.AreEqual(HttpStatusCode.OK, reopened.StatusCode);
+
+        var managerDetails = WebUtility.HtmlDecode(await client.GetStringAsync(detailsPath));
+        var coordinatorDetails = WebUtility.HtmlDecode(await omarClient.GetStringAsync(detailsPath));
+        StringAssert.Contains(managerDetails, "نور — من مريم إلى عمر");
+        StringAssert.Contains(managerDetails, "عمر — من جديد إلى تم التواصل");
+        StringAssert.Contains(managerDetails, "عمر — من تم التواصل إلى تم إرسال عرض السعر");
+        StringAssert.Contains(managerDetails, note);
+        StringAssert.Contains(managerDetails, $"سبب الإغلاق: {reason}");
+        StringAssert.Contains(coordinatorDetails, reason);
+        Assert.IsFalse(coordinatorDetails.Contains("name=\"note\"", StringComparison.Ordinal));
+        Assert.IsFalse(managerDetails.Contains("name=\"coordinatorId\"", StringComparison.Ordinal));
+
+        var saved = await database.Inquiries.AsNoTracking().SingleAsync(item => item.Id == inquiry.Id);
+        Assert.AreEqual(InquiryStatus.Closed, saved.Status);
+        Assert.AreEqual(omar.Id, saved.CoordinatorId);
+        var history = await database.InquiryFollowUps.AsNoTracking().OrderBy(entry => entry.Id).ToListAsync();
+        Assert.HasCount(4, history);
+        Assert.IsTrue(history.All(entry => entry.ActorId == omar.Id && entry.OccurredAt >= createdAt));
+        Assert.AreEqual(InquiryStatus.Contacted, history[0].NewStatus);
+        Assert.AreEqual(note, history[1].Text);
+        Assert.IsNull(history[1].NewStatus);
+        Assert.AreEqual(InquiryStatus.QuoteSent, history[2].NewStatus);
+        Assert.AreEqual(InquiryStatus.QuoteSent, history[3].PreviousStatus);
+        Assert.AreEqual(InquiryStatus.Closed, history[3].NewStatus);
+        Assert.AreEqual(reason, history[3].Text);
+    }
+
+    [TestMethod]
     public async Task ConcurrentAssignmentDoesNotWriteStaleHistory()
     {
         await using var scope = factory!.Services.CreateAsyncScope();
@@ -307,6 +415,11 @@ public sealed class ManagerInquiryIntakeTests
         return await PostAsync(client, "/Account/SignIn", ("Email", email), ("Password", TestPassword),
             ("__RequestVerificationToken", token));
     }
+
+    private static Task<HttpResponseMessage> PostStatusAsync(
+        HttpClient client, int id, InquiryStatus status, string token, string? reason = null) =>
+        PostAsync(client, $"/Inquiries/ChangeStatus/{id}", ("status", ((int)status).ToString(CultureInfo.InvariantCulture)),
+            ("reason", reason ?? ""), ("__RequestVerificationToken", token));
 
     private static async Task<HttpResponseMessage> PostAsync(
         HttpClient client, string path, params (string Name, string Value)[] fields)
