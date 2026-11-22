@@ -1,52 +1,31 @@
-# Mada Finishing Customer Inquiry Dashboard
+# Agree on the work
 
-## Stage 1. Discovery
+## 1. Understand the problem
 
-**General step.** Confirm the users, the existing workflow, where it fails, and how the client will judge improvement.
+Noor manages three sales coordinators. Website inquiries arrive by email. Staff copy them into a spreadsheet and use WhatsApp to assign follow-up. Two people can call the same customer, and Noor has difficulty seeing who owes the next response. Success means Noor can find an inquiry, identify its owner and see the last action.
 
-**Project.** Mada Finishing is a fictional residential finishing company in Mansoura. Noor manages three sales coordinators. Website inquiries arrive in a shared inbox. Staff copy them into a spreadsheet and assign them through WhatsApp. Ownership gets lost, customers receive duplicate calls, and Noor cannot easily see which inquiries are waiting for a quote.
+## 2. Choose the first release
 
-**Goal.** Noor can find an inquiry and tell who owns it, what its current status is, and what happened last. Coordinators can work from a list of their assigned inquiries. The dashboard is for staff.
+Deliver a local Windows staff dashboard with an Arabic right-to-left interface. Noor enters inquiries manually. Staff send quotes through their existing process and record the result here. Staff accounts are created during setup. Technical documentation is in English.
 
-## Stage 2. Requirements and scope
+Later requests include automatic intake, sending quotes, WhatsApp integration, notifications, reports and account administration.
 
-**General step.** Agree on the first release, define business rules and permissions, and write scenarios the client can use to accept the work.
+## 3. Define what counts as done
 
-### First release
-
-| ID | Requirement |
-|---|---|
-| R1 | Staff sign in as a manager or a sales coordinator. The manager sees all inquiries. Coordinators see only inquiries currently assigned to them, including when opening a direct link. |
-| R2 | The manager enters inquiries received in the shared inbox. Capture customer name, phone number, service type, and an optional message. The system records when each inquiry was created. |
-| R3 | Staff can browse the newest inquiries first, search by customer name or phone, and filter by status within their own access. Each row shows the customer, service, date, status, and current owner. |
-| R4 | The manager can assign or reassign an open inquiry to one coordinator. New inquiries start unassigned and assignment does not change their status. |
-| R5 | The assigned coordinator can add notes or change the status of an open inquiry. The manager can read the details and history. |
-| R6 | The usual status flow is New → Contacted → Quote Sent → Closed. The assigned coordinator can close an inquiry from any open status and must give a reason. Closed inquiries remain available for viewing. |
-| R7 | The details screen shows the inquiry and the activity history. The history records assignments and reassignments, notes, and status changes with the actor and time. A closure entry includes its reason. |
-
-**Later requests.** Automatic website intake, sending quotes from the dashboard, WhatsApp integration, notifications, reporting, and staff account management.
-
-### Missing requirements and fictional client decisions
-
-| Missing detail | Decision for this project |
-|---|---|
-| How do new inquiries arrive? | Noor enters them from the shared inbox. Seed data is available for demos. This makes intake part of the first release. |
-| Can Noor update status or add notes herself? | Noor manages assignment. The assigned coordinator records follow-up. |
-| What happens when an inquiry closes? | It stays visible to the manager and the last assigned coordinator. Both can read the history. Reopening, reassignment, and editing are unavailable after closure. |
-| What does the team mean by Quote Sent? | Staff send quotes through their existing process and record the result in the dashboard. |
-| What language do staff need? | Use an Arabic staff interface with right-to-left layout. Technical documentation is in English for the exercise. |
-| How are staff accounts created? | The initial manager and coordinator accounts are provisioned during setup. In-app account administration can be scoped later. |
-| Is there a service catalogue or a required phone format? | During intake, Noor enters the service type as text and records the phone as supplied. The system trims surrounding whitespace and searches the recorded phone by substring. |
-| Which time zone should the inquiry list use? | Show the date and time in Cairo. Store the creation timestamp in UTC. |
-| What happens when Noor selects the current coordinator again or another assignment is saved at the same time? | Selecting the current coordinator leaves ownership and history unchanged. If another change is saved while this request is in progress, show the latest details and ask Noor to review them before trying again. |
-| Can coordinators skip an open status or submit blank notes? | Open statuses advance one step at a time. Closing is available from any open status. Notes and closing reasons must contain text, with limits of 2,000 and 500 characters respectively. |
+- **R1. Access.** Noor can view all inquiries. Coordinators can open only their current assignments, including through saved links.
+- **R2. Intake.** Record the customer name, phone, service type, optional message and creation time. Trim surrounding whitespace. Accept the supplied phone format and free-text service. Multiple inquiries may share a phone.
+- **R3. Search.** Search by name or part of a phone number and filter by status within the user's access. Show newest first, with customer, service, Cairo date, status and owner.
+- **R4. Ownership.** New inquiries are unassigned. Noor can assign or reassign an open inquiry to one coordinator. Its status stays the same. Selecting the current owner leaves history unchanged. If two changes conflict, show the latest details for review.
+- **R5. Follow-up.** The current coordinator can add a nonblank note of up to 2,000 characters or update an open inquiry. Noor can read its details and history.
+- **R6. Closure.** Normal progress is New, Contacted, Quote Sent, then Closed. Open statuses advance one step at a time. A coordinator can close from any open status with a nonblank reason of up to 500 characters. Closure makes the record read-only for Noor and the last owner.
+- **R7. History.** Record the actor and time for assignments, notes and status changes. Include the closing reason.
 
 ### Client acceptance scenarios
 
-1. **Intake and search (R2–R3).** Noor enters an inquiry from an email, finds it by phone number, and sees it as New and unassigned.
-2. **Reassignment (R1, R4, R7).** Noor assigns the inquiry to Mariam, then reassigns it to Omar. Omar can open it. Mariam loses access through the list and a saved direct link. Noor can see both assignments in the history.
-3. **Follow-up and closure (R5–R7).** Omar marks the inquiry Contacted, adds a call note, and marks it Quote Sent. Closing without a reason leaves it at Quote Sent. Closing with a reason saves the change. Noor can see the owner, notes, status changes, and closing reason. Omar can still view the closed record.
+1. **Intake.** Noor enters an inquiry and finds it by phone as New and unassigned. A blank phone saves no record.
+2. **Ownership.** Noor assigns it to Mariam and then Omar. Omar can open it. Mariam loses list and saved-link access. Both assignments appear in history.
+3. **Follow-up.** Omar marks it Contacted, adds a note and marks it Quote Sent. A blank closing reason leaves it open. A valid reason closes it. Omar can still read it and Noor sees the owner and full history.
 
-## Stage 3. Design
+## 4. Agree on price and dates
 
-Technical decisions are reserved for supervisor approval. The first choices concern the starting codebase, technology baseline, and application architecture. Once agreed, the design records the approved structure and the minimum wireframes, data model, and API contract needed to build the workflow.
+This was a fictional engagement. The supervisor approved scope and reviewed delivery. For a paid project, record the price, milestone dates, payment schedule, reviewer, client inputs and support period before starting. These commercial terms were not recorded for Mada.
