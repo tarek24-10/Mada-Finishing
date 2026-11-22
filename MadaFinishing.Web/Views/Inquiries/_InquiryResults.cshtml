@@ -1,0 +1,56 @@
+@using System.Globalization
+@model InquiryListViewModel
+@{
+    var cairo = TimeZoneInfo.FindSystemTimeZoneById("Africa/Cairo");
+    var culture = CultureInfo.GetCultureInfo("ar-EG");
+}
+
+<section id="inquiry-results" data-search="@Model.Search" data-status="@((int?)Model.Status)"
+         class="card bg-white border-0 rounded-4 shadow-sm" aria-labelledby="results-title">
+    <div class="card-header bg-white rounded-top-4 d-flex flex-wrap align-items-center justify-content-between gap-2 p-3 p-md-4">
+        <h2 id="results-title" class="h5 fw-bold mb-0">نتائج البحث</h2>
+        <span id="inquiry-result-count" class="badge rounded-pill bg-light text-dark border px-3 py-2">عدد النتائج <bdi>@Model.Inquiries.Count</bdi></span>
+    </div>
+    @if (Model.Inquiries.Count == 0)
+    {
+        <div class="card-body text-center text-body-secondary p-4 p-md-5">
+            <p class="mb-0">لا توجد استفسارات مطابقة.</p>
+        </div>
+    }
+    else
+    {
+        <div class="table-responsive rounded-bottom-4" role="region" aria-label="جدول الاستفسارات" tabindex="0">
+            <table class="table table-hover align-middle mb-0 inquiry-table">
+                <thead class="table-light text-nowrap">
+                    <tr>
+                        <th scope="col" class="ps-4 py-3">العميل</th>
+                        <th scope="col">الخدمة</th>
+                        <th scope="col">تاريخ الإدخال</th>
+                        <th scope="col">الحالة</th>
+                        <th scope="col" class="pe-4">المسؤول</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var inquiry in Model.Inquiries)
+                    {
+                        var createdInCairo = TimeZoneInfo.ConvertTime(inquiry.CreatedAt, cairo);
+                        <tr>
+                            <td class="ps-4 py-3">
+                                <a asp-action="Details" asp-route-id="@inquiry.Id" class="fw-bold">@inquiry.CustomerName</a>
+                                <div class="small text-body-secondary"><bdi dir="ltr">@inquiry.Phone</bdi></div>
+                            </td>
+                            <td>@inquiry.ServiceType</td>
+                            <td class="small text-nowrap">
+                                <time datetime="@createdInCairo.ToString("O", CultureInfo.InvariantCulture)">
+                                    @createdInCairo.ToString("dd MMM yyyy، HH:mm", culture)
+                                </time>
+                            </td>
+                            <td><partial name="_InquiryStatusBadge" model="inquiry.Status" /></td>
+                            <td>@(inquiry.CoordinatorName ?? "غير مسند")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</section>

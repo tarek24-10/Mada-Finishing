@@ -107,7 +107,7 @@ public sealed class ManagerInquiryIntakeTests
         Assert.IsFalse(phoneResults.Contains(otherCustomer, StringComparison.Ordinal));
         Assert.IsTrue(phoneResults.IndexOf(customer, StringComparison.Ordinal) <
                       phoneResults.IndexOf(earlierCustomer, StringComparison.Ordinal));
-        StringAssert.Contains(phoneResults, "<td>جديد</td>");
+        StringAssert.Matches(phoneResults, new Regex(@"<td>\s*<span[^>]*>جديد</span>\s*</td>"));
         StringAssert.Contains(phoneResults, "<td>غير مسند</td>");
         StringAssert.Contains(phoneResults, "lang=\"ar\" dir=\"rtl\"");
 
@@ -117,6 +117,16 @@ public sealed class ManagerInquiryIntakeTests
         Assert.IsFalse(newResults.Contains(earlierCustomer, StringComparison.Ordinal));
         var closedResults = WebUtility.HtmlDecode(await client.GetStringAsync($"{nameSearch}&status=3"));
         Assert.IsFalse(closedResults.Contains(customer, StringComparison.Ordinal));
+
+        using var ajaxSearch = new HttpRequestMessage(HttpMethod.Get, $"{nameSearch}&status=0");
+        ajaxSearch.Headers.Add("X-Requested-With", "XMLHttpRequest");
+        using var ajaxResponse = await client.SendAsync(ajaxSearch);
+        Assert.AreEqual(HttpStatusCode.OK, ajaxResponse.StatusCode);
+        var ajaxResults = WebUtility.HtmlDecode(await ajaxResponse.Content.ReadAsStringAsync());
+        StringAssert.Contains(ajaxResults, "id=\"inquiry-results\"");
+        StringAssert.Contains(ajaxResults, customer);
+        Assert.IsFalse(ajaxResults.Contains(earlierCustomer, StringComparison.Ordinal));
+        Assert.IsFalse(ajaxResults.Contains("<html", StringComparison.OrdinalIgnoreCase));
 
         var saved = await database.Inquiries.SingleAsync(inquiry => inquiry.CustomerName == customer);
         Assert.AreEqual(Phone, saved.Phone);
@@ -214,6 +224,13 @@ public sealed class ManagerInquiryIntakeTests
         Assert.AreEqual(HttpStatusCode.NotFound, savedLink.StatusCode);
         var formerCoordinatorList = WebUtility.HtmlDecode(await mariamClient.GetStringAsync("/Inquiries?search=12345678"));
         Assert.IsFalse(formerCoordinatorList.Contains(customer, StringComparison.Ordinal));
+        using var ajaxSearch = new HttpRequestMessage(HttpMethod.Get, "/Inquiries?search=12345678");
+        ajaxSearch.Headers.Add("X-Requested-With", "XMLHttpRequest");
+        using var formerCoordinatorResults = await mariamClient.SendAsync(ajaxSearch);
+        Assert.AreEqual(HttpStatusCode.OK, formerCoordinatorResults.StatusCode);
+        var formerCoordinatorFragment = WebUtility.HtmlDecode(await formerCoordinatorResults.Content.ReadAsStringAsync());
+        StringAssert.Contains(formerCoordinatorFragment, "لا توجد استفسارات مطابقة.");
+        Assert.IsFalse(formerCoordinatorFragment.Contains(customer, StringComparison.Ordinal));
         var currentCoordinatorList = WebUtility.HtmlDecode(await omarClient.GetStringAsync("/Inquiries?search=12345678"));
         StringAssert.Contains(currentCoordinatorList, customer);
         StringAssert.Contains(WebUtility.HtmlDecode(await omarClient.GetStringAsync(detailsPath)), customer);

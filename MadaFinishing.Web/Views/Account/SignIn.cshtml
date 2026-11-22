@@ -3,25 +3,36 @@
     ViewData["Title"] = "تسجيل الدخول";
 }
 
-<section class="card shadow-sm mx-auto mt-md-4" style="max-width: 32rem;">
-    <div class="card-body p-4">
-        <h1 class="h3 mb-4">تسجيل الدخول</h1>
-        <form asp-action="SignIn" method="post" novalidate>
-            <input asp-for="ReturnUrl" type="hidden" />
-            <div asp-validation-summary="ModelOnly" class="text-danger" role="alert"></div>
-            <div class="mb-3">
-                <label asp-for="Email" class="form-label"></label>
-                <input asp-for="Email" type="email" autocomplete="username" dir="ltr" required class="form-control"
-                       aria-describedby="email-error" />
-                <span asp-validation-for="Email" id="email-error" class="text-danger"></span>
+<div class="row justify-content-center mt-lg-4">
+    <section class="col-12 col-xl-11" aria-labelledby="sign-in-title">
+        <div class="card border-0 rounded-4 overflow-hidden shadow-sm bg-white">
+            <div class="row g-0">
+                <div class="col-lg-6 sign-in-panel text-white p-4 p-lg-5 d-flex flex-column justify-content-end">
+                    <p class="display-6 fw-bold mb-2">استفسارات العملاء</p>
+                    <p class="opacity-75 mb-0">تابع كل استفسار من تسجيله إلى إغلاقه.</p>
+                </div>
+                <div class="col-lg-6 p-4 p-lg-5">
+                    <h1 id="sign-in-title" class="h2 fw-bold mb-2">تسجيل الدخول</h1>
+                    <p class="text-body-secondary mb-4">استخدم بريد العمل للدخول إلى لوحة الاستفسارات.</p>
+                    <form asp-action="SignIn" method="post" novalidate>
+                        <input asp-for="ReturnUrl" type="hidden" />
+                        <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+                        <div class="mb-3">
+                            <label asp-for="Email" class="form-label fw-semibold"></label>
+                            <input asp-for="Email" type="email" autocomplete="username" dir="ltr" required class="form-control"
+                                   aria-describedby="email-error" />
+                            <span asp-validation-for="Email" id="email-error" class="small text-danger"></span>
+                        </div>
+                        <div class="mb-4">
+                            <label asp-for="Password" class="form-label fw-semibold"></label>
+                            <input asp-for="Password" autocomplete="current-password" dir="ltr" required class="form-control"
+                                   aria-describedby="password-error" />
+                            <span asp-validation-for="Password" id="password-error" class="small text-danger"></span>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100 py-2">تسجيل الدخول</button>
+                    </form>
+                </div>
             </div>
-            <div class="mb-4">
-                <label asp-for="Password" class="form-label"></label>
-                <input asp-for="Password" autocomplete="current-password" dir="ltr" required class="form-control"
-                       aria-describedby="password-error" />
-                <span asp-validation-for="Password" id="password-error" class="text-danger"></span>
-            </div>
-            <button type="submit" class="btn btn-primary">تسجيل الدخول</button>
-        </form>
-    </div>
-</section>
+        </div>
+    </section>
+</div>

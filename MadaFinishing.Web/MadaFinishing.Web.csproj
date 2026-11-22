@@ -17,7 +17,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Content Update="wwwroot/css/site.css;wwwroot/lib/bootstrap/dist/css/bootstrap.rtl.min.css"
+    <Content Update="wwwroot/css/site.css;wwwroot/js/inquiry-search.js;wwwroot/images/finishing-materials.jpg;wwwroot/lib/bootstrap/dist/css/bootstrap.rtl.min.css"
              CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 

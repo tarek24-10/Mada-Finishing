@@ -6,22 +6,26 @@
     <title>@ViewData["Title"] — مدى للتشطيبات</title>
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.rtl.min.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
-    <link rel="stylesheet" href="~/MadaFinishing.Web.styles.css" asp-append-version="true" />
 </head>
-<body class="bg-light">
-    <header class="bg-white border-bottom">
-        <nav class="container d-flex flex-wrap align-items-center justify-content-between gap-2 py-3" aria-label="التنقل الرئيسي">
-            <a class="fw-bold text-decoration-none text-dark" asp-controller="Inquiries" asp-action="Index">مدى للتشطيبات</a>
+<body class="d-flex flex-column min-vh-100">
+    <header class="app-header">
+        <nav class="navbar container px-3 py-3 gap-3" data-bs-theme="dark" aria-label="التنقل الرئيسي">
+            <a class="navbar-brand d-inline-flex align-items-center gap-2 m-0 fw-bold"
+               asp-controller="Inquiries" asp-action="Index">
+                <span class="brand-mark rounded-3" aria-hidden="true">م</span>
+                مدى للتشطيبات
+            </a>
             @if (User.Identity?.IsAuthenticated == true)
             {
                 <form asp-controller="Account" asp-action="SignOut" method="post">
-                    <button type="submit" class="btn btn-outline-secondary btn-sm">تسجيل الخروج</button>
+                    <button type="submit" class="btn btn-outline-light btn-sm px-3">تسجيل الخروج</button>
                 </form>
             }
         </nav>
     </header>
-    <main class="container py-4">
+    <main class="container flex-grow-1 py-4 py-lg-5">
         @RenderBody()
     </main>
+    @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>
