@@ -53,6 +53,25 @@ Run a baseline check when existing behavior is uncertain. Repeat a check after a
 
 Choose once per task from the models available. Escalate for a specific unresolved question and pass along the relevant evidence.
 
+## Refactoring workflow for MVC projects
+
+1. Trace a user action from its Razor form through the controller to the business rule and database query. Identify the specific name, method or screen that makes the flow difficult to follow.
+2. Keep persisted entities in `Models` and screen data and form inputs in `ViewModels`. Name methods for what the caller needs, such as `SearchAsync` and `GetDetailsAsync`. Update callers, Razor imports and validation bindings in the same change.
+3. Extract a method or Razor partial when it describes a distinct task, such as loading or displaying inquiry history. Preserve authorization, query ordering, concurrency handling and form values on validation errors.
+   - Give a repeated business rule one implementation and call it from each workflow that uses it. Keep EF Core filters composable so filtering runs before counting, sorting and paging.
+   - Share rendering when multiple screens display the same value. For example, the list, details and history views all use `_CairoTime` for the localized timestamp and its machine-readable value.
+   - In JavaScript, separate fetching results from updating the DOM. Preserve keyboard focus, announcements, browser history and edits made while a request is in flight.
+4. Put the primary task first on each screen. Use the installed Bootstrap grid, forms, cards and buttons. Keep custom CSS for branding and behavior the framework does not cover. Check keyboard focus, validation, RTL text and narrow layouts.
+5. Run the following from the solution root before and after a refactor. Review new files listed by Git as well as the tracked diff. Use the project's documented test database for integration checks and report skipped tests separately.
+
+```powershell
+git status --short
+dotnet build
+dotnet test --no-build
+git diff --check
+git diff --stat
+```
+
 ## Backlog workflow
 
 - When planning work, read [the requirements](docs/Mada_Finishing_01_Discovery_and_Requirements.md) and use [the technical design draft](docs/Mada_Finishing_02_Technical_Design_Draft.md) as the implementation guide. Consult [the backlog](docs/BACKLOG.md) to select a use case.
