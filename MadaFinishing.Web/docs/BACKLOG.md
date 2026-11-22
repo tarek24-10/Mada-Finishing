@@ -16,6 +16,8 @@ Work on one use case at a time. Mark it **Ready** once its prerequisites are com
 
 ## Maintenance backlog
 
+**MVC refactor — supervisor approved on 2026-11-22.** Moved form inputs and screen models into `ViewModels`, extracted the inquiry history query and Razor partial, and simplified the inquiry list and intake layouts.
+
 **Delivered after first acceptance.** Staff interface refresh, search results that update in place, and five-row inquiry pages. See [screen flow](Mada_Finishing_02_Technical_Design_Draft.md#screen-flow).
 
 **Proposed: review inquiries waiting for quotes.** Noor wants a live view for her weekly review. Supervisor approval is pending.

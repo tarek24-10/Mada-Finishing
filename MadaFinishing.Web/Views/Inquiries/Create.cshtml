@@ -1,4 +1,4 @@
-@model InquiryInput
+@model CreateInquiryInput
 @{
     ViewData["Title"] = "استفسار جديد";
 }
@@ -13,17 +13,19 @@
         <section class="card card-body bg-white border-0 rounded-4 shadow-sm p-4 p-lg-5" aria-label="بيانات الاستفسار">
             <form asp-action="Create" method="post" novalidate>
                 <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
-                <div class="mb-3">
-                    <label asp-for="CustomerName" class="form-label fw-semibold"></label>
-                    <input asp-for="CustomerName" class="form-control" required maxlength="@Inquiry.CustomerNameMaxLength"
-                           aria-describedby="customer-name-error" />
-                    <span asp-validation-for="CustomerName" id="customer-name-error" class="small text-danger"></span>
-                </div>
-                <div class="mb-3">
-                    <label asp-for="Phone" class="form-label fw-semibold"></label>
-                    <input asp-for="Phone" type="tel" dir="ltr" class="form-control" required maxlength="@Inquiry.PhoneMaxLength"
-                           aria-describedby="phone-error" />
-                    <span asp-validation-for="Phone" id="phone-error" class="small text-danger"></span>
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <label asp-for="CustomerName" class="form-label fw-semibold"></label>
+                        <input asp-for="CustomerName" class="form-control" required maxlength="@Inquiry.CustomerNameMaxLength"
+                               aria-describedby="customer-name-error" />
+                        <span asp-validation-for="CustomerName" id="customer-name-error" class="small text-danger"></span>
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="Phone" class="form-label fw-semibold"></label>
+                        <input asp-for="Phone" type="tel" dir="ltr" class="form-control" required maxlength="@Inquiry.PhoneMaxLength"
+                               aria-describedby="phone-error" />
+                        <span asp-validation-for="Phone" id="phone-error" class="small text-danger"></span>
+                    </div>
                 </div>
                 <div class="mb-3">
                     <label asp-for="ServiceType" class="form-label fw-semibold"></label>

@@ -1,0 +1,43 @@
+@using System.Globalization
+@model InquiryDetailsViewModel
+@{
+    var statusLabels = Html.GetEnumSelectList<InquiryStatus>();
+    string StatusLabel(InquiryStatus status) =>
+        statusLabels.First(item => item.Value == ((int)status).ToString(CultureInfo.InvariantCulture)).Text;
+}
+
+<section class="card card-body bg-white border-0 rounded-4 shadow-sm p-4" aria-labelledby="inquiry-history">
+    <h2 id="inquiry-history" class="h5 fw-bold mb-3">سجل النشاط</h2>
+    @if (Model.History.Count == 0)
+    {
+        <p class="text-body-secondary mb-0">لا توجد أنشطة مسجلة.</p>
+    }
+    else
+    {
+        <ol class="list-group list-group-flush activity-list ms-1">
+            @foreach (var entry in Model.History)
+            {
+                <li class="list-group-item bg-white ps-3 pe-0 py-3">
+                    @if (entry.Kind == InquiryHistoryKind.Assignment)
+                    {
+                        <div class="fw-semibold">@entry.ActorName — من @(entry.PreviousCoordinatorName ?? "غير مسند") إلى @entry.NewCoordinatorName</div>
+                    }
+                    else if (entry.Kind == InquiryHistoryKind.Note)
+                    {
+                        <div class="fw-semibold">@entry.ActorName — ملاحظة متابعة</div>
+                        <p class="inquiry-history-text text-break mb-1">@entry.Text</p>
+                    }
+                    else if (entry.PreviousStatus is { } previousStatus && entry.NewStatus is { } newStatus)
+                    {
+                        <div class="fw-semibold">@entry.ActorName — من @StatusLabel(previousStatus) إلى @StatusLabel(newStatus)</div>
+                        @if (newStatus == InquiryStatus.Closed)
+                        {
+                            <p class="text-break mb-1">سبب الإغلاق: @entry.Text</p>
+                        }
+                    }
+                    <span class="small text-body-secondary"><partial name="_CairoTime" model="entry.OccurredAt" /></span>
+                </li>
+            }
+        </ol>
+    }
+</section>

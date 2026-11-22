@@ -1,0 +1,7 @@
+@using System.Globalization
+@model DateTimeOffset
+@{
+    var cairoTime = TimeZoneInfo.ConvertTime(Model, TimeZoneInfo.FindSystemTimeZoneById("Africa/Cairo"));
+    var culture = CultureInfo.GetCultureInfo("ar-EG");
+}
+<time datetime="@cairoTime.ToString("O", CultureInfo.InvariantCulture)">@cairoTime.ToString("dd MMM yyyy، HH:mm", culture)</time>

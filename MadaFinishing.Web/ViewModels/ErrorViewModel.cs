@@ -1,4 +1,4 @@
-namespace MadaFinishing.Web.Models;
+namespace MadaFinishing.Web.ViewModels;
 
 public class ErrorViewModel
 {

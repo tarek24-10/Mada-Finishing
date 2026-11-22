@@ -1,9 +1,4 @@
-@using System.Globalization
 @model InquiryListViewModel
-@{
-    var cairo = TimeZoneInfo.FindSystemTimeZoneById("Africa/Cairo");
-    var culture = CultureInfo.GetCultureInfo("ar-EG");
-}
 
 <section id="inquiry-results" data-search="@Model.Search" data-status="@((int?)Model.Status)"
          class="card bg-white border-0 rounded-4 shadow-sm" aria-labelledby="results-title">
@@ -33,7 +28,6 @@
                 <tbody>
                     @foreach (var inquiry in Model.Inquiries)
                     {
-                        var createdInCairo = TimeZoneInfo.ConvertTime(inquiry.CreatedAt, cairo);
                         <tr>
                             <td class="ps-4 py-3">
                                 <a asp-action="Details" asp-route-id="@inquiry.Id" class="fw-bold">@inquiry.CustomerName</a>
@@ -41,9 +35,7 @@
                             </td>
                             <td>@inquiry.ServiceType</td>
                             <td class="small text-nowrap">
-                                <time datetime="@createdInCairo.ToString("O", CultureInfo.InvariantCulture)">
-                                    @createdInCairo.ToString("dd MMM yyyy، HH:mm", culture)
-                                </time>
+                                <partial name="_CairoTime" model="inquiry.CreatedAt" />
                             </td>
                             <td><partial name="_InquiryStatusBadge" model="inquiry.Status" /></td>
                             <td>@(inquiry.CoordinatorName ?? "غير مسند")</td>

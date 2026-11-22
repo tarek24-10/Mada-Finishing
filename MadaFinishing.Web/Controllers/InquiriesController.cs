@@ -1,5 +1,6 @@
 using MadaFinishing.Web.Inquiries;
 using MadaFinishing.Web.Models;
+using MadaFinishing.Web.ViewModels;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -25,7 +26,7 @@ public sealed class InquiriesController(InquiryService inquiries, UserManager<St
             return Forbid();
         }
 
-        var model = await inquiries.ListAsync(
+        var model = await inquiries.SearchAsync(
             staffId, User.IsInRole(StaffUser.ManagerRole), search, status, pageNumber ?? 1, cancellationToken);
         return Request.Headers["X-Requested-With"] == "XMLHttpRequest"
             ? PartialView("_InquiryResults", model)
@@ -41,18 +42,18 @@ public sealed class InquiriesController(InquiryService inquiries, UserManager<St
             return Forbid();
         }
 
-        var details = await inquiries.DetailsAsync(id, staffId, User.IsInRole(StaffUser.ManagerRole), cancellationToken);
+        var details = await inquiries.GetDetailsAsync(id, staffId, User.IsInRole(StaffUser.ManagerRole), cancellationToken);
         return details is null ? NotFound() : View(details);
     }
 
     [HttpGet]
     [Authorize(Roles = StaffUser.ManagerRole)]
-    public IActionResult Create() => View(new InquiryInput());
+    public IActionResult Create() => View(new CreateInquiryInput());
 
     [HttpPost]
     [Authorize(Roles = StaffUser.ManagerRole)]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Create(InquiryInput input, CancellationToken cancellationToken)
+    public async Task<IActionResult> Create(CreateInquiryInput input, CancellationToken cancellationToken)
     {
         if (!ModelState.IsValid)
         {
@@ -85,7 +86,7 @@ public sealed class InquiriesController(InquiryService inquiries, UserManager<St
             return NotFound();
         }
 
-        var details = await inquiries.DetailsAsync(id, managerId, isManager: true, cancellationToken);
+        var details = await inquiries.GetDetailsAsync(id, managerId, isManager: true, cancellationToken);
         if (details is null)
         {
             return NotFound();
@@ -140,7 +141,7 @@ public sealed class InquiriesController(InquiryService inquiries, UserManager<St
             return NotFound();
         }
 
-        var details = await inquiries.DetailsAsync(id, staffId, isManager: false, cancellationToken);
+        var details = await inquiries.GetDetailsAsync(id, staffId, isManager: false, cancellationToken);
         if (details is null)
         {
             return NotFound();

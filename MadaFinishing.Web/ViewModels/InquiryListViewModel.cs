@@ -1,4 +1,5 @@
-namespace MadaFinishing.Web.Models;
+using MadaFinishing.Web.Models;
+namespace MadaFinishing.Web.ViewModels;
 
 public sealed record InquiryListViewModel(
     string? Search, InquiryStatus? Status, IReadOnlyList<InquiryListRow> Inquiries,
