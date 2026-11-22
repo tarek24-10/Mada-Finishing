@@ -143,7 +143,7 @@ public sealed class ManagerInquiryIntakeTests
         var createdAt = DateTimeOffset.UtcNow;
         await using var scope = factory!.Services.CreateAsyncScope();
         var database = scope.ServiceProvider.GetRequiredService<MadaFinishingDbContext>();
-        database.Inquiries.AddRange(Enumerable.Range(1, 23).Select(number =>
+        database.Inquiries.AddRange(Enumerable.Range(1, 8).Select(number =>
             Inquiry.Create($"Matching inquiry {number:00}", Phone, "تشطيب", null, createdAt.AddMinutes(number))));
         database.Inquiries.Add(Inquiry.Create("Different phone", "01134567890", "تشطيب", null, createdAt));
         var closed = Inquiry.Create("Closed match", Phone, "تشطيب", null, createdAt);
@@ -156,11 +156,11 @@ public sealed class ManagerInquiryIntakeTests
 
         const string filteredList = "/Inquiries?search=12345678&status=0";
         var firstPage = WebUtility.HtmlDecode(await client.GetStringAsync(filteredList));
-        Assert.HasCount(20, Regex.Matches(firstPage, "Matching inquiry [0-9]{2}"));
-        StringAssert.Contains(firstPage, "Matching inquiry 23");
+        Assert.HasCount(5, Regex.Matches(firstPage, "Matching inquiry [0-9]{2}"));
+        StringAssert.Contains(firstPage, "Matching inquiry 08");
         StringAssert.Contains(firstPage, "Matching inquiry 04");
         Assert.IsFalse(firstPage.Contains("Matching inquiry 03", StringComparison.Ordinal));
-        StringAssert.Contains(firstPage, "عدد النتائج <bdi>23</bdi>");
+        StringAssert.Contains(firstPage, "عدد النتائج <bdi>8</bdi>");
         StringAssert.Contains(firstPage, "pageNumber=2");
 
         using var pageRequest = new HttpRequestMessage(HttpMethod.Get, $"{filteredList}&pageNumber=2");
@@ -170,7 +170,7 @@ public sealed class ManagerInquiryIntakeTests
         var secondPage = WebUtility.HtmlDecode(await pageResponse.Content.ReadAsStringAsync());
         CollectionAssert.AreEqual(new[] { "Matching inquiry 03", "Matching inquiry 02", "Matching inquiry 01" },
             Regex.Matches(secondPage, "Matching inquiry [0-9]{2}").Select(match => match.Value).ToArray());
-        StringAssert.Contains(secondPage, "عدد النتائج <bdi>23</bdi>");
+        StringAssert.Contains(secondPage, "عدد النتائج <bdi>8</bdi>");
         StringAssert.Contains(secondPage, "الصفحة <bdi>2</bdi> من <bdi>2</bdi>");
         Assert.IsFalse(secondPage.Contains("Closed match", StringComparison.Ordinal));
         Assert.IsFalse(secondPage.Contains("Different phone", StringComparison.Ordinal));
